@@ -15,7 +15,7 @@ use tide::{Request, StatusCode};
 #[tokio::main]
 async fn main() -> tide::Result<()> {
     let client = reqwest::Client::new();
-    let res = client
+    let response = client
         .post(URL)
         .body(GETCONTRACTSTATE)
         .send()
@@ -23,14 +23,14 @@ async fn main() -> tide::Result<()> {
         // TODO error handling
         .expect("Post request failed");
     // TODO check server error code and error handling
-    let text = res.text().await.expect("1");
+    let text = response.text().await.expect("1");
     // TODO remove debug println
     if text.len() < 3000 {
         println!("{}", text);
     }
     // TODO error handling
     let cur_state: Resp = serde_json::from_str(&text).expect("2");
-    let mut owned_id = HashMap::new();
+    let mut owned_id = HashMap::with_capacity(cur_state.result.tokens_owner_stage.len());
     for (key, val) in &cur_state.result.tokens_owner_stage {
         let tokens = val.keys().cloned().collect();
         owned_id.insert(key.to_string(), tokens);
@@ -46,12 +46,33 @@ async fn main() -> tide::Result<()> {
     };
     println!("Dragons backend is starting on {}", api_url);
     let mut app = tide::with_state(app_state);
-    app.at("/api/v1/dragons").get(dragons);
+    app.at("/api/v1/dragons").get(get_dragons);
+    app.at("/api/v1/dragon/:id").get(get_dragon_by_id);
     app.listen(api_url).await?;
     Ok(())
 }
-
-async fn dragons(req: Request<AppState>) -> tide::Result {
+// GET /api/v1/dragon/:id
+async fn get_dragon_by_id(req: Request<AppState>) -> tide::Result {
+    let str_id = req.param("id")?;
+    let app_state = req.state();
+    let cs = &app_state.contract_state;
+    match cs.token_stage.get(str_id) {
+        Some(_) => {
+            let page: Page = Page {
+                limit: 1,
+                offset: 0,
+                owner: "".to_string(),
+            };
+            Ok(create_response(vec![create_item(str_id, cs)?], &page, 1)?.into())
+        }
+        None => Err(tide::Error::from_str(
+            StatusCode::NotFound,
+            "id is not found",
+        )),
+    }
+}
+// GET /api/v1/dragons [?limit=1&offset=1&owner=0x...]
+async fn get_dragons(req: Request<AppState>) -> tide::Result {
     let page: Page = req.query()?;
     if page.limit == 0 {
         return Err(tide::Error::from_str(
