@@ -14,6 +14,7 @@ use tide::{Request, StatusCode};
 
 #[tokio::main]
 async fn main() -> tide::Result<()> {
+    dotenv::dotenv().ok();
     let client = reqwest::Client::new();
     let response = client
         .post(URL)
