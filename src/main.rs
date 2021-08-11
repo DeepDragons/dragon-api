@@ -7,7 +7,7 @@ extern crate serde_json;
 mod datastruct;
 use datastruct::{
     AppState, Item, OkResponse, Page, Pagination, Resp, ShortItem, State, DEFAULT_API_URL,
-    GETCONTRACTSTATE, URL,
+    GETCONTRACTSTATE, RI, URL,
 };
 use std::collections::HashMap;
 use tide::{Request, StatusCode};
@@ -114,25 +114,25 @@ fn calc_indexes(page: &Page, real_end: usize) -> Result<(usize, usize), tide::Er
     }
     Ok((start, std::cmp::min(start + page.limit, real_end)))
 }
-fn get_items<'a>(tokens: &[String], cs: &'a State) -> Result<Vec<Item<'a>>, tide::Error> {
+fn get_items<'a>(tokens: &'a [String], cs: &'a State) -> Result<Vec<Item<'a>>, tide::Error> {
     let mut items = Vec::with_capacity(tokens.len());
     for str_id in tokens {
         items.push(create_item(str_id, cs)?);
     }
     Ok(items)
 }
-fn create_item<'a>(str_id: &str, cs: &'a State) -> Result<Item<'a>, tide::Error> {
+fn create_item<'a>(str_id: &'a str, cs: &'a State) -> Result<Item<'a>, tide::Error> {
+    let gen_image = get_element(&cs.token_gen_image, str_id)?;
     Ok(Item {
-        id: str_id
-            .parse()
-            .map_err(|e| tide::Error::new(StatusCode::InternalServerError, e))?,
+        id: str_id,
         owner: get_element(&cs.token_owners, str_id)?,
         url: get_element(&cs.token_uris, str_id)?,
-        gen_image: get_element(&cs.token_gen_image, str_id)?,
+        gen_image,
         gen_fight: get_element(&cs.token_gen_battle, str_id)?,
         stage: get_element(&cs.token_stage, str_id)?
             .parse()
             .map_err(|e| tide::Error::new(StatusCode::InternalServerError, e))?,
+        rarity: calc_rarity(gen_image)?,
         // TODO add real statistics
         fight_win: 666,
         fight_lose: 13,
@@ -161,4 +161,52 @@ fn create_response(items: Vec<Item>, page: &Page, records: usize) -> Result<Stri
 }
 fn internal_error() -> tide::Error {
     tide::Error::from_str(StatusCode::InternalServerError, "HashMap::get() error")
+}
+// https://github.com/DeepDragons/dragon-zil/blob/master/src/mixins/utils.js#L50
+// most of visual gens have 2 parts - type (0-9) and color(0-4)
+// head have 1 digit
+// claws have 1 digit
+// Color Scheme have 3 digits
+// MutagenImutable have 3 digits
+// e.g. 777 03 03 43 31 14 33 44 11 73 1 4 110 158
+//      777 01 64 02 94 03 04 40 24 11 4 1 076 065
+// Aura-12   Horns-11   Scales-10   Spots-9   Tail-8   Wings-7
+// Spins-6   Body-5   Eyes-4   Head-3   Claws-2   Color Scheme-1   MutagenImutable-0
+/* https://github.com/DeepDragons/dragon-zil/blob/master/src/mixins/utils.js#L1
+ * None      0
+ * Common    1
+ * Uncommon  2
+ * Rare      3
+ * Mythical  4
+ * Legendary 5
+ * Immortal  6
+ * Arcana    7
+ * Ancient   8
+ */
+fn calc_rarity(gens: &str) -> Result<u8, tide::Error> {
+    let gen_to_index = |a, b| {
+        gens[a..b]
+            .parse::<usize>()
+            .map_err(|e| tide::Error::new(StatusCode::InternalServerError, e))
+    };
+    // https://github.com/DeepDragons/dragon-zil/blob/master/src/mixins/utils.js#L372
+    let rarity_sum = RI.aura[gen_to_index(3, 4)?]
+        + RI.horns[gen_to_index(5, 6)?]
+        + RI.scales[gen_to_index(7, 8)?]
+        + RI.spots[gen_to_index(9, 10)?]
+        + RI.tail[gen_to_index(11, 12)?]
+        + RI.wings[gen_to_index(13, 14)?]
+        + RI.body[gen_to_index(17, 18)?]
+        + RI.eyes[gen_to_index(19, 20)?]
+        + RI.head[gen_to_index(21, 22)?];
+    Ok(match rarity_sum {
+        0..=15 => 1,  //TODO check it?
+        16..=23 => 2, // Uncommon
+        24..=31 => 3, // Rare
+        32..=39 => 4, // Mythical
+        40..=47 => 5, // Legendary
+        48..=55 => 6, // Imortal
+        56..=63 => 7, // Arcana
+        _ => 8,       // Ancient
+    })
 }

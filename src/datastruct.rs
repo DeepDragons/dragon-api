@@ -72,12 +72,13 @@ pub struct ShortItem {
 
 #[derive(Serialize, Clone)]
 pub struct Item<'a> {
-    pub id: u64,
+    pub id: &'a str,
     pub owner: &'a str,
     pub url: &'a str,
     pub gen_image: &'a str,
     pub gen_fight: &'a str,
     pub stage: u8,
+    pub rarity: u8,
     pub fight_win: u32,
     pub fight_lose: u32,
     pub parents: Vec<ShortItem>,
@@ -105,3 +106,37 @@ pub struct AppState {
     pub owned_id: HashMap<String, Vec<String>>,
     pub contract_state: State,
 }
+pub struct RarityConst {
+    pub aura: [u8; 6],
+    pub horns: [u8; 8],
+    pub scales: [u8; 5],
+    pub spots: [u8; 10],
+    pub tail: [u8; 9],
+    pub wings: [u8; 6],
+    pub body: [u8; 4],
+    pub eyes: [u8; 10],
+    pub head: [u8; 6],
+}
+/*
+ * https://github.com/DeepDragons/dragon-zil/blob/master/src/mixins/utils.js
+ * None      0
+ * Common    1
+ * Uncommon  2
+ * Rare      3
+ * Mythical  4
+ * Legendary 5
+ * Immortal  6
+ * Arcana    7
+ * Ancient   8
+ */
+pub const RI: RarityConst = RarityConst {
+    aura: [0, 2, 3, 3, 4, 5],
+    horns: [0, 2, 3, 3, 3, 3, 4, 5],
+    scales: [1, 2, 3, 4, 5],
+    spots: [0, 1, 2, 2, 2, 2, 2, 2, 8, 5],
+    tail: [0, 2, 3, 3, 3, 3, 3, 4, 5],
+    wings: [0, 1, 2, 3, 4, 5],
+    body: [0, 1, 4, 6],
+    eyes: [0, 1, 3, 3, 3, 3, 4, 4, 5, 6],
+    head: [0, 1, 3, 5, 6, 7],
+};
