@@ -2,7 +2,12 @@
 name = "dragon-api"
 version = "0.0.2"
 authors = ["Igor-Khan <khanigot@gmil.com>"]
+description = "An api  "
+repository = "https://github.com/DeepDragons/dragon-api"
+license = "MIT"
+keywords = ["web", "api", "tide", "zilliqa", "blockchain"]
 edition = "2018"
+publish = false
 
 [dependencies]
 reqwest = "0.11"
