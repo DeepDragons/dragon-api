@@ -10,7 +10,7 @@ use datastruct::{
     GETCONTRACTSTATE, RI, URL,
 };
 use std::collections::HashMap;
-use tide::{Request, StatusCode};
+use tide::{http::headers::HeaderValue, Request, StatusCode};
 
 #[tokio::main]
 async fn main() -> tide::Result<()> {
@@ -47,6 +47,15 @@ async fn main() -> tide::Result<()> {
     };
     println!("Dragons backend is starting on {}", api_url);
     let mut app = tide::with_state(app_state);
+    #[cfg(debug_assertions)]
+    {
+        println!("Debug mode, CORS allow \"*\"");
+        let cors_debug = tide::security::CorsMiddleware::new()
+            .allow_methods("GET".parse::<HeaderValue>().unwrap())
+            .allow_origin(tide::security::Origin::from("*"))
+            .allow_credentials(false);
+        app.with(cors_debug);
+    }
     app.at("/api/v1/dragons").get(get_dragons);
     app.at("/api/v1/dragon/:id").get(get_dragon_by_id);
     app.listen(api_url).await?;
