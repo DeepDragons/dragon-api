@@ -8,7 +8,9 @@ pub const URL: &str = "https://api.zilliqa.com/";
 
 // https://dev.zilliqa.com/docs/apis/api-contract-get-smartcontract-state/
 // Returns the state (mutable) variables of a smart contract address
-pub const GETCONTRACTSTATE: &str = "{\"id\":\"1\",\"jsonrpc\":\"2.0\",\"method\":\"GetSmartContractState\",\"params\":[\"b4D83BECB950c096B001a3D1c7aBb10F571ae75f\"]}";
+pub const MAINSTATE: &str = "{\"id\":\"1\",\"jsonrpc\":\"2.0\",\"method\":\"GetSmartContractState\",\"params\":[\"b4D83BECB950c096B001a3D1c7aBb10F571ae75f\"]}";
+pub const BATTLESTATE: &str = "{\"id\":\"1\",\"jsonrpc\":\"2.0\",\"method\":\"GetSmartContractSubState\",\"params\":[\"21B870dc77921B21F9A98a732786Bf812888193c\",\"waiting_list\",[]]}";
+pub const BREEDSTATE: &str = "{\"id\":\"1\",\"jsonrpc\":\"2.0\",\"method\":\"GetSmartContractSubState\",\"params\":[\"71435501608BE1993C4146f9CAbfa3f547205F6f\",\"waiting_list\",[]]}";
 pub const DEFAULT_API_URL: &str = "127.0.0.1:8083";
 
 #[derive(Deserialize, Clone)]
@@ -20,7 +22,7 @@ struct Dummy {
 }
 
 #[derive(Deserialize, Clone)]
-pub struct State {
+pub struct MainState {
     _balance: String,
     cloud: String,
     format_img: String,
@@ -40,11 +42,23 @@ pub struct State {
     total_supply: String,
 }
 
+#[derive(Deserialize, Clone)]
+pub struct BreedItem {
+    argtypes: [String; 2],
+    pub arguments: [String; 2], // ar..s[0] is price, ar..s[1] is owner
+    constructor: String,
+}
+
 #[derive(Deserialize)]
-pub struct Resp {
+pub struct WaitState<T> {
+    pub waiting_list: HashMap<String, T>,
+}
+
+#[derive(Deserialize)]
+pub struct Resp<T> {
     id: String,
     jsonrpc: String,
-    pub result: State,
+    pub result: T,
 }
 
 #[derive(Deserialize)]
@@ -81,6 +95,7 @@ pub struct Item<'a> {
     pub rarity: u8,
     pub fight_win: u32,
     pub fight_lose: u32,
+    pub actions: Vec<(u8, &'a str)>,
     pub parents: Vec<ShortItem>,
     pub children: Vec<ShortItem>,
 }
@@ -104,8 +119,11 @@ pub struct OkResponse<'a> {
 pub struct AppState {
     pub id_list: Vec<String>,
     pub owned_id: HashMap<String, Vec<String>>,
-    pub contract_state: State,
+    pub contract_state: MainState,
+    pub battle_state: HashMap<String, String>,
+    pub breed_state: HashMap<String, BreedItem>,
 }
+
 pub struct RarityConst {
     pub aura: [u8; 6],
     pub horns: [u8; 8],
