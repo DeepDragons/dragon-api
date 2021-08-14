@@ -45,17 +45,21 @@ async fn main() -> tide::Result<()> {
     // TODO error handling
     let main_resp: Resp<MainState> = serde_json::from_str(&text).expect("main state");
     drop(text);
+    // TODO error handling
+    let parse_cmp = |a: &String, b: &String| a.parse::<u64>().unwrap().cmp(&b.parse::<u64>().unwrap());
     let mut owned_id = HashMap::with_capacity(main_resp.result.tokens_owner_stage.len());
     for (key, val) in &main_resp.result.tokens_owner_stage {
         let mut tokens: Vec<String> = val.keys().cloned().collect();
         if let Some(x) = market_owned_id.get_mut(key) {
             tokens.append(x);
         }
-        tokens.sort_unstable();
+        tokens.sort_unstable_by(parse_cmp);
         owned_id.insert(key.to_string(), tokens);
     }
+    let mut id_list: Vec<String> = main_resp.result.token_stage.keys().cloned().collect();
+    id_list.sort_unstable_by(parse_cmp);
     let app_state = AppState {
-        id_list: main_resp.result.token_stage.keys().cloned().collect(),
+        id_list,
         owned_id,
         contract_state: main_resp.result,
         battle_state: battle_resp.result.waiting_list,
