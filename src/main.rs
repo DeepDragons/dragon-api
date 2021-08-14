@@ -82,7 +82,7 @@ async fn main() -> tide::Result<()> {
         app.with(cors_debug);
     }
     app.at("/api/v1/dragons").get(get_dragons);
-    app.at("/api/v1/dragon/:id").get(get_dragon_by_id);
+    app.at("/api/v1/dragons/:id").get(get_dragon_by_id);
     app.listen(api_url).await?;
     Ok(())
 }
@@ -103,7 +103,7 @@ async fn do_request(body: &'static str) -> String {
     }
     text
 }
-// GET /api/v1/dragon/:id
+// GET /api/v1/dragons/:id
 async fn get_dragon_by_id(req: Request<AppState>) -> tide::Result {
     let str_id = req.param("id")?;
     let app_state = req.state();
