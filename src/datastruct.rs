@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+pub const DEFAULT_API_URL: &str = "127.0.0.1:8083";
+
 pub const URL: &str = "https://api.zilliqa.com/";
 
 // https://dev.zilliqa.com/docs/apis/api-blockchain-get-current-mini-epoch
@@ -9,9 +11,12 @@ pub const URL: &str = "https://api.zilliqa.com/";
 // https://dev.zilliqa.com/docs/apis/api-contract-get-smartcontract-state/
 // Returns the state (mutable) variables of a smart contract address
 pub const MAINSTATE: &str = "{\"id\":\"1\",\"jsonrpc\":\"2.0\",\"method\":\"GetSmartContractState\",\"params\":[\"b4D83BECB950c096B001a3D1c7aBb10F571ae75f\"]}";
+
+// https://dev.zilliqa.com/docs/apis/api-contract-get-smartcontract-substate/
+// Returns the state (or a part specified) of a smart contract address
 pub const BATTLESTATE: &str = "{\"id\":\"1\",\"jsonrpc\":\"2.0\",\"method\":\"GetSmartContractSubState\",\"params\":[\"21B870dc77921B21F9A98a732786Bf812888193c\",\"waiting_list\",[]]}";
 pub const BREEDSTATE: &str = "{\"id\":\"1\",\"jsonrpc\":\"2.0\",\"method\":\"GetSmartContractSubState\",\"params\":[\"71435501608BE1993C4146f9CAbfa3f547205F6f\",\"waiting_list\",[]]}";
-pub const DEFAULT_API_URL: &str = "127.0.0.1:8083";
+pub const MARKETSTATE: &str = "{\"id\":\"1\",\"jsonrpc\":\"2.0\",\"method\":\"GetSmartContractSubState\",\"params\":[\"7b9b80aaF561Ecd4e89ea55D83d59Ab7aC01A575\",\"orderbook\",[]]}";
 
 #[derive(Deserialize, Clone)]
 struct Dummy {
@@ -21,6 +26,7 @@ struct Dummy {
     constructor: String,
 }
 
+// https://github.com/DeepDragons/DragonZILContracts/blob/main/DragonZIL.scilla#L150
 #[derive(Deserialize, Clone)]
 pub struct MainState {
     _balance: String,
@@ -30,18 +36,43 @@ pub struct MainState {
     migrate_option: Dummy,
     minters: HashMap<String, Dummy>,
     operator_approvals: HashMap<String, String>,
+    // Map ByStr20 Uint25 (owner -> count)
     owned_token_count: HashMap<String, String>,
     token_approvals: HashMap<String, String>,
+    // Map Uint256 Uint256 (id -> gens)
     pub token_gen_battle: HashMap<String, String>,
+    // Map Uint256 Uint256 (id -> gens)
     pub token_gen_image: HashMap<String, String>,
     token_id_count: String,
+    //Map Uint256 ByStr20 (id -> owner)
     pub token_owners: HashMap<String, String>,
+    // Map Uint256 Uint32 (id -> stage)
     pub token_stage: HashMap<String, String>,
+    // Map Uint256 String (id -> uri)
     pub token_uris: HashMap<String, String>,
+    // Map ByStr20 (Map Uint256 Uint32) (owner -> (id -> stage))
     pub tokens_owner_stage: HashMap<String, HashMap<String, String>>,
     total_supply: String,
 }
 
+// https://github.com/DeepDragons/DragonZILContracts/blob/main/MarketPlace.scilla#L209
+#[derive(Deserialize)]
+pub struct MarketItem {
+    argtypes: [u8; 0],
+    // Order of ByStr20 Uint128 Uint256 Uint256 (owner, price, id, order_id)
+    pub arguments: [String; 4],
+    constructor: String,
+}
+
+//https://github.com/DeepDragons/DragonZILContracts/blob/main/MarketPlace.scilla#L90
+#[derive(Deserialize)]
+pub struct OrderState {
+    // Map Uint256 Order (order_id -> Order)
+    pub orderbook: HashMap<String, MarketItem>,
+}
+
+// https://github.com/DeepDragons/DragonZILContracts/blob/main/BreedPlace.scilla#L256
+// waiting_list: Map Uint256 (Pair Uint128 ByStr20) (id -> (price, owner))
 #[derive(Deserialize, Clone)]
 pub struct BreedItem {
     argtypes: [String; 2],
@@ -118,10 +149,11 @@ pub struct OkResponse<'a> {
 #[derive(Clone)]
 pub struct AppState {
     pub id_list: Vec<String>,
-    pub owned_id: HashMap<String, Vec<String>>,
+    pub owned_id: HashMap<String, Vec<String>>, //  (owner -> Vec<id>)
     pub contract_state: MainState,
-    pub battle_state: HashMap<String, String>,
-    pub breed_state: HashMap<String, BreedItem>,
+    pub battle_state: HashMap<String, String>, //   (id -> price>
+    pub breed_state: HashMap<String, BreedItem>, // (id -> BreedItem)
+    pub market_state: HashMap<String, String>, //   (id -> price)
 }
 
 pub struct RarityConst {

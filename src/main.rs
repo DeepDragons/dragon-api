@@ -5,10 +5,12 @@ extern crate serde_derive;
 extern crate serde_json;
 
 mod datastruct;
-use datastruct::{
-    AppState, BreedItem, Item, MainState, OkResponse, Page, Pagination, Resp, ShortItem, WaitState,
-    BATTLESTATE, BREEDSTATE, DEFAULT_API_URL, MAINSTATE, RI, URL,
-};
+use datastruct::*;
+/*
+{
+    AppState, BreedItem, Item, MainState, /* MarketItem, */ OkResponse, OrderState, Page, Pagination, Resp, ShortItem, WaitState,
+    BATTLESTATE, BREEDSTATE, DEFAULT_API_URL, MAINSTATE, MARKETSTATE, RI, URL,
+}; */
 use std::collections::HashMap;
 use tide::{http::headers::HeaderValue, Request, StatusCode};
 
@@ -20,12 +22,35 @@ async fn main() -> tide::Result<()> {
     let battle_resp: Resp<WaitState<String>> = serde_json::from_str(&text).expect("battle state");
     let text = do_request(BREEDSTATE).await;
     let breed_resp: Resp<WaitState<BreedItem>> = serde_json::from_str(&text).expect("breed state");
+    let text = do_request(MARKETSTATE).await;
+    let market_resp: Resp<OrderState> = serde_json::from_str(&text).expect("market state");
+    let mut market_state: HashMap<String, String> =
+        HashMap::with_capacity(market_resp.result.orderbook.len());
+    let mut market_owned_id: HashMap<String, Vec<String>> = HashMap::new();
+    for i in market_resp.result.orderbook.into_values() {
+        let (owner, price, id) = (
+            i.arguments[0].clone(),
+            i.arguments[1].clone(),
+            i.arguments[2].clone(),
+        );
+        market_state.insert(id.clone(), price);
+        match market_owned_id.get_mut(&owner) {
+            Some(x) => x.push(id),
+            None => {
+                market_owned_id.insert(owner, vec![id]);
+            }
+        };
+    }
     let text = do_request(MAINSTATE).await;
     // TODO error handling
     let main_resp: Resp<MainState> = serde_json::from_str(&text).expect("main state");
+    drop(text);
     let mut owned_id = HashMap::with_capacity(main_resp.result.tokens_owner_stage.len());
     for (key, val) in &main_resp.result.tokens_owner_stage {
-        let tokens = val.keys().cloned().collect();
+        let mut tokens: Vec<String> = val.keys().cloned().collect();
+        if let Some(x) = market_owned_id.get_mut(key) {
+            tokens.append(x);
+        }
         owned_id.insert(key.to_string(), tokens);
     }
     let app_state = AppState {
@@ -34,6 +59,7 @@ async fn main() -> tide::Result<()> {
         contract_state: main_resp.result,
         battle_state: battle_resp.result.waiting_list,
         breed_state: breed_resp.result.waiting_list,
+        market_state,
     };
     let api_url = match std::env::var("API_URL") {
         Ok(val) => val,
@@ -172,6 +198,9 @@ fn collect_actions<'a>(str_id: &str, app_s: &'a AppState) -> Vec<(u8, &'a str)> 
     }
     if let Some(x) = app_s.breed_state.get(str_id) {
         result.push((2, &x.arguments[0])); // 2 is eq Breed
+    }
+    if let Some(x) = app_s.market_state.get(str_id) {
+        result.push((3, x)); // 3 is eq Market
     }
     result
 }
