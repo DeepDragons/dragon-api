@@ -153,6 +153,8 @@ pub struct AppState {
     pub contract_state: MainState,
     pub battle_state: HashMap<String, String>, //   (id -> price>
     pub breed_state: HashMap<String, BreedItem>, // (id -> BreedItem)
+    pub market_id_list: Vec<String>,
+    pub market_owned_id: HashMap<String, Vec<String>>, //(owner -> Vec<id>)
     pub market_state: HashMap<String, String>, //   (id -> price)
 }
 

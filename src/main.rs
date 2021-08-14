@@ -24,8 +24,9 @@ async fn main() -> tide::Result<()> {
     let breed_resp: Resp<WaitState<BreedItem>> = serde_json::from_str(&text).expect("breed state");
     let text = do_request(MARKETSTATE).await;
     let market_resp: Resp<OrderState> = serde_json::from_str(&text).expect("market state");
-    let mut market_state: HashMap<String, String> =
-        HashMap::with_capacity(market_resp.result.orderbook.len());
+    let market_len = market_resp.result.orderbook.len();
+    let mut market_state: HashMap<String, String> = HashMap::with_capacity(market_len);
+    let mut market_id_list: Vec<String> = Vec::with_capacity(market_len);
     let mut market_owned_id: HashMap<String, Vec<String>> = HashMap::new();
     for i in market_resp.result.orderbook.into_values() {
         let (owner, price, id) = (
@@ -34,6 +35,7 @@ async fn main() -> tide::Result<()> {
             i.arguments[2].clone(),
         );
         market_state.insert(id.clone(), price);
+        market_id_list.push(id.clone());
         match market_owned_id.get_mut(&owner) {
             Some(x) => x.push(id),
             None => {
@@ -58,12 +60,15 @@ async fn main() -> tide::Result<()> {
     }
     let mut id_list: Vec<String> = main_resp.result.token_stage.keys().cloned().collect();
     id_list.sort_unstable_by(parse_cmp);
+    market_id_list.sort_unstable_by(parse_cmp);
     let app_state = AppState {
         id_list,
         owned_id,
         contract_state: main_resp.result,
         battle_state: battle_resp.result.waiting_list,
         breed_state: breed_resp.result.waiting_list,
+        market_id_list,
+        market_owned_id,
         market_state,
     };
     let api_url = match std::env::var("API_URL") {
@@ -83,6 +88,7 @@ async fn main() -> tide::Result<()> {
     }
     app.at("/api/v1/dragons").get(get_dragons);
     app.at("/api/v1/dragons/:id").get(get_dragon_by_id);
+    app.at("/api/v1/market").get(get_from_market);
     app.listen(api_url).await?;
     Ok(())
 }
@@ -122,8 +128,17 @@ async fn get_dragon_by_id(req: Request<AppState>) -> tide::Result {
         )),
     }
 }
+// GET /api/v1/market
+async fn get_from_market(req: Request<AppState>) -> tide::Result {
+    let app_state = req.state();
+    get_data(&app_state.market_id_list, &app_state.market_owned_id, &req)
+}
 // GET /api/v1/dragons [?limit=1&offset=1&owner=0x...]
 async fn get_dragons(req: Request<AppState>) -> tide::Result {
+    let app_state = req.state();
+    get_data(&app_state.id_list, &app_state.owned_id, &req)
+}
+fn get_data(all_tokens: &Vec<String>, owned_id: &HashMap<String, Vec<String>>, req: &Request<AppState>) -> tide::Result {
     let page: Page = req.query()?;
     if page.limit == 0 {
         return Err(tide::Error::from_str(
@@ -133,12 +148,12 @@ async fn get_dragons(req: Request<AppState>) -> tide::Result {
     }
     let app_state = req.state();
     if page.owner.is_empty() {
-        let real_end = app_state.id_list.len();
+        let real_end = all_tokens.len();
         let (start, end) = calc_indexes(&page, real_end)?;
-        let items = collect_items(&app_state.id_list[start..end], app_state)?;
+        let items = collect_items(&all_tokens[start..end], app_state)?;
         Ok(create_response(items, &page, real_end)?.into())
     } else {
-        let tokens = match app_state.owned_id.get(&page.owner) {
+        let tokens = match owned_id.get(&page.owner) {
             Some(result) => result,
             None => {
                 return Err(tide::Error::from_str(
