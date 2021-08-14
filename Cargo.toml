@@ -1,8 +1,8 @@
 [package]
 name = "dragon-api"
-version = "0.0.3"
+version = "0.0.4"
 authors = ["Igor-Khan <khanigot@gmil.com>"]
-description = "An api  "
+description = "API server for dragonzil"
 repository = "https://github.com/DeepDragons/dragon-api"
 license = "MIT"
 keywords = ["web", "api", "tide", "zilliqa", "blockchain"]

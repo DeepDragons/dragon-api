@@ -51,6 +51,7 @@ async fn main() -> tide::Result<()> {
         if let Some(x) = market_owned_id.get_mut(key) {
             tokens.append(x);
         }
+        tokens.sort_unstable();
         owned_id.insert(key.to_string(), tokens);
     }
     let app_state = AppState {
