@@ -148,14 +148,14 @@ pub struct OkResponse<'a> {
 
 #[derive(Clone)]
 pub struct AppState {
-    pub id_list: Vec<String>,
-    pub owned_id: HashMap<String, Vec<String>>, //  (owner -> Vec<id>)
-    pub contract_state: MainState,
-    pub battle_state: HashMap<String, String>, //   (id -> price>
-    pub breed_state: HashMap<String, BreedItem>, // (id -> BreedItem)
+    pub all_id_list: Vec<String>,
+    pub all_owned_id: HashMap<String, Vec<String>>, //    (owner -> Vec<id>)
+    pub main_state: MainState,
+    pub battle_id_price: HashMap<String, String>, //      (id -> price>
+    pub breed_state: HashMap<String, BreedItem>, //       (id -> BreedItem)
     pub market_id_list: Vec<String>,
-    pub market_owned_id: HashMap<String, Vec<String>>, //(owner -> Vec<id>)
-    pub market_state: HashMap<String, String>, //   (id -> price)
+    pub market_id_price: HashMap<String, String>, //      (id -> price)
+    pub market_owned_id: HashMap<String, Vec<String>>, // (owner -> Vec<id>)
 }
 
 pub struct RarityConst {

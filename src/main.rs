@@ -25,7 +25,7 @@ async fn main() -> tide::Result<()> {
     let text = do_request(MARKETSTATE).await;
     let market_resp: Resp<OrderState> = serde_json::from_str(&text).expect("market state");
     let market_len = market_resp.result.orderbook.len();
-    let mut market_state: HashMap<String, String> = HashMap::with_capacity(market_len);
+    let mut market_id_price: HashMap<String, String> = HashMap::with_capacity(market_len);
     let mut market_id_list: Vec<String> = Vec::with_capacity(market_len);
     let mut market_owned_id: HashMap<String, Vec<String>> = HashMap::new();
     for i in market_resp.result.orderbook.into_values() {
@@ -34,7 +34,7 @@ async fn main() -> tide::Result<()> {
             i.arguments[1].clone(),
             i.arguments[2].clone(),
         );
-        market_state.insert(id.clone(), price);
+        market_id_price.insert(id.clone(), price);
         market_id_list.push(id.clone());
         match market_owned_id.get_mut(&owner) {
             Some(x) => x.push(id),
@@ -49,27 +49,27 @@ async fn main() -> tide::Result<()> {
     drop(text);
     // TODO error handling
     let parse_cmp = |a: &String, b: &String| a.parse::<u64>().unwrap().cmp(&b.parse::<u64>().unwrap());
-    let mut owned_id = HashMap::with_capacity(main_resp.result.tokens_owner_stage.len());
+    let mut all_owned_id = HashMap::with_capacity(main_resp.result.tokens_owner_stage.len());
     for (key, val) in &main_resp.result.tokens_owner_stage {
         let mut tokens: Vec<String> = val.keys().cloned().collect();
         if let Some(x) = market_owned_id.get_mut(key) {
             tokens.append(x);
         }
         tokens.sort_unstable_by(parse_cmp);
-        owned_id.insert(key.to_string(), tokens);
+        all_owned_id.insert(key.to_string(), tokens);
     }
-    let mut id_list: Vec<String> = main_resp.result.token_stage.keys().cloned().collect();
-    id_list.sort_unstable_by(parse_cmp);
+    let mut all_id_list: Vec<String> = main_resp.result.token_stage.keys().cloned().collect();
+    all_id_list.sort_unstable_by(parse_cmp);
     market_id_list.sort_unstable_by(parse_cmp);
     let app_state = AppState {
-        id_list,
-        owned_id,
-        contract_state: main_resp.result,
-        battle_state: battle_resp.result.waiting_list,
+        all_id_list,
+        all_owned_id,
+        main_state: main_resp.result,
+        battle_id_price: battle_resp.result.waiting_list,
         breed_state: breed_resp.result.waiting_list,
         market_id_list,
+        market_id_price,
         market_owned_id,
-        market_state,
     };
     let api_url = match std::env::var("API_URL") {
         Ok(val) => val,
@@ -113,7 +113,7 @@ async fn do_request(body: &'static str) -> String {
 async fn get_dragon_by_id(req: Request<AppState>) -> tide::Result {
     let str_id = req.param("id")?;
     let app_state = req.state();
-    match app_state.contract_state.token_stage.get(str_id) {
+    match app_state.main_state.token_stage.get(str_id) {
         Some(_) => {
             let page: Page = Page {
                 limit: 1,
@@ -136,9 +136,9 @@ async fn get_from_market(req: Request<AppState>) -> tide::Result {
 // GET /api/v1/dragons [?limit=1&offset=1&owner=0x...]
 async fn get_dragons(req: Request<AppState>) -> tide::Result {
     let app_state = req.state();
-    get_data(&app_state.id_list, &app_state.owned_id, &req)
+    get_data(&app_state.all_id_list, &app_state.all_owned_id, &req)
 }
-fn get_data(all_tokens: &Vec<String>, owned_id: &HashMap<String, Vec<String>>, req: &Request<AppState>) -> tide::Result {
+fn get_data(all_tokens: &[String], owned_id: &HashMap<String, Vec<String>>, req: &Request<AppState>) -> tide::Result {
     let page: Page = req.query()?;
     if page.limit == 0 {
         return Err(tide::Error::from_str(
@@ -189,7 +189,7 @@ fn collect_items<'a>(
     Ok(items)
 }
 fn create_item<'a>(str_id: &'a str, app_s: &'a AppState) -> Result<Item<'a>, tide::Error> {
-    let ms = &app_s.contract_state;
+    let ms = &app_s.main_state;
     let gen_image = get_element(&ms.token_gen_image, str_id)?;
     Ok(Item {
         id: str_id,
@@ -213,13 +213,13 @@ fn create_item<'a>(str_id: &'a str, app_s: &'a AppState) -> Result<Item<'a>, tid
 }
 fn collect_actions<'a>(str_id: &str, app_s: &'a AppState) -> Vec<(u8, &'a str)> {
     let mut result: Vec<(u8, &str)> = Vec::with_capacity(3);
-    if let Some(x) = app_s.battle_state.get(str_id) {
+    if let Some(x) = app_s.battle_id_price.get(str_id) {
         result.push((1, x)); // 1 is eq Battle
     }
     if let Some(x) = app_s.breed_state.get(str_id) {
         result.push((2, &x.arguments[0])); // 2 is eq Breed
     }
-    if let Some(x) = app_s.market_state.get(str_id) {
+    if let Some(x) = app_s.market_id_price.get(str_id) {
         result.push((3, x)); // 3 is eq Market
     }
     result
