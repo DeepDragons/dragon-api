@@ -12,7 +12,7 @@ use datastruct::*;
     BATTLESTATE, BREEDSTATE, DEFAULT_API_URL, MAINSTATE, MARKETSTATE, RI, URL,
 }; */
 use std::collections::HashMap;
-use tide::{http::headers::HeaderValue, Request, StatusCode};
+use tide::{http::headers::HeaderValue, Request, Response, StatusCode};
 
 #[tokio::main]
 async fn main() -> tide::Result<()> {
@@ -155,9 +155,9 @@ async fn get_dragon_by_id(req: Request<AppState>) -> tide::Result {
             };
             Ok(create_response(vec![create_item(str_id, app_state)?], &page, 1)?.into())
         }
-        None => Err(tide::Error::from_str(
+        None => Ok(create_error(
             StatusCode::NotFound,
-            "id is not found",
+            &format!("Id {} is not found.", str_id),
         )),
     }
 }
@@ -188,42 +188,55 @@ fn get_data(
 ) -> tide::Result {
     let page: Page = req.query()?;
     if page.limit == 0 {
-        return Err(tide::Error::from_str(
+        return Ok(create_error(
             StatusCode::BadRequest,
-            "limit cannot be zero",
+            "Limit cannot be zero.",
         ));
     }
     let app_state = req.state();
     if page.owner.is_empty() {
         let real_end = all_tokens.len();
-        let (start, end) = calc_indexes(&page, real_end)?;
-        let items = collect_items(&all_tokens[start..end], app_state)?;
-        Ok(create_response(items, &page, real_end)?.into())
+        match calc_indexes(&page, real_end) {
+            Some((start, end)) => {
+                let items = collect_items(&all_tokens[start..end], app_state)?;
+                Ok(create_response(items, &page, real_end)?.into())
+            }
+            None => Ok(create_error(StatusCode::BadRequest, "Offset is too big.")),
+        }
     } else {
         let tokens = match owned_id.get(&page.owner) {
             Some(result) => result,
             None => {
-                return Err(tide::Error::from_str(
+                return Ok(create_error(
                     StatusCode::NotFound,
-                    "owner is not found",
-                ))
+                    &format!("Owner {} is not found.", page.owner),
+                ));
             }
         };
         let real_end = tokens.len();
-        let (start, end) = calc_indexes(&page, real_end)?;
-        let items = collect_items(&tokens[start..end], app_state)?;
-        Ok(create_response(items, &page, real_end)?.into())
+        match calc_indexes(&page, real_end) {
+            Some((start, end)) => {
+                let items = collect_items(&tokens[start..end], app_state)?;
+                Ok(create_response(items, &page, real_end)?.into())
+            }
+            None => Ok(create_error(StatusCode::BadRequest, "Offset is too big.")),
+        }
     }
 }
-fn calc_indexes(page: &Page, real_end: usize) -> Result<(usize, usize), tide::Error> {
+fn create_error(code: tide::StatusCode, err_text: &str) -> tide::Response {
+    let mut response = Response::new(code);
+    response.set_body(format!(
+        "{{\"success\":false,\"error\":{{\"code\":{},\"message\":\"{}\"}}}}",
+        code, err_text
+    ));
+    response
+}
+fn calc_indexes(page: &Page, real_end: usize) -> Option<(usize, usize)> {
     let start = page.offset * page.limit;
     if start >= real_end {
-        return Err(tide::Error::from_str(
-            StatusCode::BadRequest,
-            "offset is too big",
-        ));
+        return None;
     }
-    Ok((start, std::cmp::min(start + page.limit, real_end)))
+    Some((start, std::cmp::min(start + page.limit, real_end)))
 }
 fn collect_items<'a>(
     tokens: &'a [String],
