@@ -150,6 +150,7 @@ pub struct OkResponse<'a> {
 pub struct AppState {
     pub all_id_list: Vec<String>,
     pub all_owned_id: HashMap<String, Vec<String>>, //    (owner -> Vec<id>)
+    pub all_id_owner: HashMap<String, String>,      //    (id -> Owner)
     pub main_state: MainState,
     pub battle_id_list: Vec<String>,
     pub battle_id_price: HashMap<String, String>, //      (id -> price)

@@ -37,12 +37,15 @@ async fn main() -> tide::Result<()> {
     let mut market_id_price: HashMap<String, String> = HashMap::with_capacity(market_len);
     let mut market_id_list: Vec<String> = Vec::with_capacity(market_len);
     let mut market_owned_id: HashMap<String, Vec<String>> = HashMap::new();
+    // TODO Add with_capacity
+    let mut all_id_owner = HashMap::new();
     for i in market_resp.result.orderbook.into_values() {
         let (owner, price, id) = (
             i.arguments[0].clone(),
             i.arguments[1].clone(),
             i.arguments[2].clone(),
         );
+        all_id_owner.insert(id.clone(), owner.clone());
         market_id_price.insert(id.clone(), price);
         market_id_list.push(id.clone());
         match market_owned_id.get_mut(&owner) {
@@ -58,6 +61,7 @@ async fn main() -> tide::Result<()> {
     let text = do_request(BATTLESTATE).await;
     // TODO error handling
     let battle_resp: Resp<WaitState<String>> = serde_json::from_str(&text).expect("battle state");
+    drop(text);
     let mut battle_id_list: Vec<String> = battle_resp.result.waiting_list.keys().cloned().collect();
     let mut battle_owned_id: HashMap<String, Vec<String>> = HashMap::new();
     for id in battle_resp.result.waiting_list.keys() {
@@ -70,7 +74,14 @@ async fn main() -> tide::Result<()> {
             }
         }
     }
-    drop(text);
+    for (id, owner) in &main_resp.result.token_owners {
+        match all_id_owner.get(id) {
+            None => {
+                all_id_owner.insert(id.to_string(), owner.to_string());
+            }
+            Some(_) => {}
+        }
+    }
     // TODO error handling
     let parse_cmp =
         |a: &String, b: &String| a.parse::<u128>().unwrap().cmp(&b.parse::<u128>().unwrap());
@@ -78,7 +89,7 @@ async fn main() -> tide::Result<()> {
     for (key, val) in &main_resp.result.tokens_owner_stage {
         let mut tokens: Vec<String> = val.keys().cloned().collect();
         if let Some(x) = market_owned_id.get_mut(key) {
-            tokens.append(x);
+            tokens.extend_from_slice(x);
         }
         tokens.sort_unstable_by(parse_cmp);
         all_owned_id.insert(key.to_string(), tokens);
@@ -91,6 +102,7 @@ async fn main() -> tide::Result<()> {
     let app_state = AppState {
         all_id_list,
         all_owned_id,
+        all_id_owner,
         main_state: main_resp.result,
         battle_id_list,
         battle_id_price: battle_resp.result.waiting_list,
@@ -253,7 +265,7 @@ fn create_item<'a>(str_id: &'a str, app_s: &'a AppState) -> Result<Item<'a>, tid
     let gen_image = get_element(&ms.token_gen_image, str_id)?;
     Ok(Item {
         id: str_id,
-        owner: get_element(&ms.token_owners, str_id)?,
+        owner: get_element(&app_s.all_id_owner, str_id)?,
         url: get_element(&ms.token_uris, str_id)?,
         gen_image,
         gen_fight: get_element(&ms.token_gen_battle, str_id)?,
