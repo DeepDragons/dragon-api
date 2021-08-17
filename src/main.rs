@@ -354,13 +354,13 @@ fn calc_rarity(gens: &str) -> Result<u8, tide::Error> {
         + RI.eyes[gen_to_index(19, 20)?]
         + RI.head[gen_to_index(21, 22)?];
     Ok(match rarity_sum {
-        0..=15 => 1,  //TODO check it?
-        16..=23 => 2, // Uncommon
-        24..=31 => 3, // Rare
-        32..=39 => 4, // Mythical
-        40..=47 => 5, // Legendary
-        48..=55 => 6, // Imortal
-        56..=63 => 7, // Arcana
-        _ => 8,       // Ancient
+        0..=15 => 0,  //TODO check it?
+        16..=23 => 1, // Uncommon
+        24..=31 => 2, // Rare
+        32..=39 => 3, // Mythical
+        40..=47 => 4, // Legendary
+        48..=55 => 5, // Imortal
+        56..=63 => 6, // Arcana
+        _ => 7,       // Ancient
     })
 }
