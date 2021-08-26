@@ -1,7 +1,5 @@
 use std::collections::HashMap;
 
-pub const DEFAULT_API_URL: &str = "127.0.0.1:8083";
-
 pub const URL: &str = "https://api.zilliqa.com/";
 
 // https://dev.zilliqa.com/docs/apis/api-blockchain-get-current-mini-epoch
@@ -24,35 +22,6 @@ struct Dummy {
     argtypes: [u8; 0],
     arguments: [u8; 0],
     constructor: String,
-}
-
-// https://github.com/DeepDragons/DragonZILContracts/blob/main/DragonZIL.scilla#L150
-#[derive(Deserialize, Clone)]
-pub struct MainState {
-    _balance: String,
-    cloud: String,
-    format_img: String,
-    max_stage: String,
-    migrate_option: Dummy,
-    minters: HashMap<String, Dummy>,
-    operator_approvals: HashMap<String, String>,
-    // Map ByStr20 Uint25 (owner -> count)
-    owned_token_count: HashMap<String, String>,
-    token_approvals: HashMap<String, String>,
-    // Map Uint256 Uint256 (id -> gens)
-    pub token_gen_battle: HashMap<String, String>,
-    // Map Uint256 Uint256 (id -> gens)
-    pub token_gen_image: HashMap<String, String>,
-    token_id_count: String,
-    //Map Uint256 ByStr20 (id -> owner)
-    pub token_owners: HashMap<String, String>,
-    // Map Uint256 Uint32 (id -> stage)
-    pub token_stage: HashMap<String, String>,
-    // Map Uint256 String (id -> uri)
-    pub token_uris: HashMap<String, String>,
-    // Map ByStr20 (Map Uint256 Uint32) (owner -> (id -> stage))
-    pub tokens_owner_stage: HashMap<String, HashMap<String, String>>,
-    total_supply: String,
 }
 
 // https://github.com/DeepDragons/DragonZILContracts/blob/main/MarketPlace.scilla#L209
@@ -92,59 +61,35 @@ pub struct Resp<T> {
     pub result: T,
 }
 
-#[derive(Deserialize)]
-#[serde(default)]
-pub struct Page {
-    pub limit: usize,
-    pub offset: usize,
-    pub owner: String,
-}
-impl Default for Page {
-    fn default() -> Self {
-        Self {
-            limit: 6,
-            offset: 0,
-            owner: String::new(),
-        }
-    }
-}
-
-#[derive(Serialize, Clone)]
-pub struct ShortItem {
-    pub id: u64,
-    pub url: String,
-}
-
-#[derive(Serialize, Clone)]
-pub struct Item<'a> {
-    pub id: &'a str,
-    pub owner: &'a str,
-    pub url: &'a str,
-    pub gen_image: &'a str,
-    pub gen_fight: &'a str,
-    pub stage: u8,
-    pub rarity: u8,
-    pub fight_win: u32,
-    pub fight_lose: u32,
-    pub actions: Vec<(u8, &'a str)>,
-    pub parents: Vec<ShortItem>,
-    pub children: Vec<ShortItem>,
+// https://github.com/DeepDragons/DragonZILContracts/blob/main/DragonZIL.scilla#L150
+#[derive(Deserialize, Clone)]
+pub struct MainState {
+    _balance: String,
+    cloud: String,
+    format_img: String,
+    max_stage: String,
+    migrate_option: Dummy,
+    minters: HashMap<String, Dummy>,
+    operator_approvals: HashMap<String, String>,
+    // Map ByStr20 Uint25 (owner -> count)
+    owned_token_count: HashMap<String, String>,
+    token_approvals: HashMap<String, String>,
+    // Map Uint256 Uint256 (id -> gens)
+    pub token_gen_battle: HashMap<String, String>,
+    // Map Uint256 Uint256 (id -> gens)
+    pub token_gen_image: HashMap<String, String>,
+    token_id_count: String,
+    //Map Uint256 ByStr20 (id -> owner)
+    pub token_owners: HashMap<String, String>,
+    // Map Uint256 Uint32 (id -> stage)
+    pub token_stage: HashMap<String, String>,
+    // Map Uint256 String (id -> uri)
+    pub token_uris: HashMap<String, String>,
+    // Map ByStr20 (Map Uint256 Uint32) (owner -> (id -> stage))
+    pub tokens_owner_stage: HashMap<String, HashMap<String, String>>,
+    total_supply: String,
 }
 
-#[derive(Serialize)]
-pub struct Pagination {
-    pub records: usize,
-    pub pages: usize,
-    pub current_page: usize,
-    pub limit: usize,
-}
-
-#[derive(Serialize)]
-pub struct OkResponse<'a> {
-    pub success: bool,
-    pub data: Vec<Item<'a>>,
-    pub pagination: Pagination,
-}
 
 #[derive(Clone)]
 pub struct AppState {
@@ -159,21 +104,10 @@ pub struct AppState {
     pub breed_id_price: HashMap<String, String>, //       (id -> price)
     pub breed_owned_id: HashMap<String, Vec<String>>, //  (owner -> Vec<id>)
     pub market_id_list: Vec<String>,
-    pub market_id_price: HashMap<String, String>, //      (id -> price)
+    pub market_id_price_order: HashMap<String, (String, String)>, //      (id -> price)
     pub market_owned_id: HashMap<String, Vec<String>>, // (owner -> Vec<id>)
 }
 
-pub struct RarityConst {
-    pub aura: [u8; 6],
-    pub horns: [u8; 8],
-    pub scales: [u8; 5],
-    pub spots: [u8; 10],
-    pub tail: [u8; 9],
-    pub wings: [u8; 6],
-    pub body: [u8; 4],
-    pub eyes: [u8; 10],
-    pub head: [u8; 6],
-}
 /*
  * https://github.com/DeepDragons/dragon-zil/blob/master/src/mixins/utils.js
  * None      0
@@ -197,3 +131,15 @@ pub const RI: RarityConst = RarityConst {
     eyes: [0, 1, 3, 3, 3, 3, 4, 4, 5, 6],
     head: [0, 1, 3, 5, 6, 7],
 };
+
+pub struct RarityConst {
+    pub aura: [u8; 6],
+    pub horns: [u8; 8],
+    pub scales: [u8; 5],
+    pub spots: [u8; 10],
+    pub tail: [u8; 9],
+    pub wings: [u8; 6],
+    pub body: [u8; 4],
+    pub eyes: [u8; 10],
+    pub head: [u8; 6],
+}
