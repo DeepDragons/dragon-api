@@ -68,10 +68,8 @@ fn get_data(
         let tokens = match owned_id.get(&page.owner) {
             Some(result) => result,
             None => {
-                return Ok(create_error(
-                    StatusCode::NotFound,
-                    &format!("Owner {} is not found.", page.owner),
-                ));
+                let items = Vec::with_capacity(0);
+                return Ok(create_response(items, &page, 0)?.into())
             }
         };
         let real_end = tokens.len();
