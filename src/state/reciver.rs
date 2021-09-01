@@ -18,7 +18,7 @@ async fn do_request(body: &'static str) -> String {
     }
     text
 }
-pub async fn create_app_state() -> AppState {
+pub async fn create() -> AppState {
     let text = do_request(BREEDSTATE).await;
     let breed_resp: Resp<WaitState<BreedItem>> = serde_json::from_str(&text).expect("breed state");
     let mut breed_id_list: Vec<String> = breed_resp.result.waiting_list.keys().cloned().collect();

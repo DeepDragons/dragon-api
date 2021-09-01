@@ -1,19 +1,16 @@
-
 use std::collections::HashMap;
 use tide::{Request, Response, StatusCode};
-use crate::state::*;
-use crate::web_api::*;
+use crate::state::{AppState, RI};
+use crate::web_api::{Item, OkResponse, Page, Pagination};
+
 // GET /api/v1/dragons/:id
 pub async fn get_dragon_by_id(req: Request<AppState>) -> tide::Result {
     let str_id = req.param("id")?;
     let app_state = req.state();
     match app_state.main_state.token_stage.get(str_id) {
         Some(_) => {
-            let page: Page = Page {
-                limit: 1,
-                offset: 0,
-                owner: "".to_string(),
-            };
+            let mut page = Page::default();
+            page.limit = 1;
             Ok(create_response(vec![create_item(str_id, app_state)?], &page, 1)?.into())
         }
         None => Ok(create_error(
@@ -22,21 +19,25 @@ pub async fn get_dragon_by_id(req: Request<AppState>) -> tide::Result {
         )),
     }
 }
+
 // GET /api/v1/battle
 pub async fn get_from_battle(req: Request<AppState>) -> tide::Result {
     let app_state = req.state();
     get_data(&app_state.battle_id_list, &app_state.battle_owned_id, &req)
 }
+
 // GET /api/v1/breed
 pub async fn get_from_breed(req: Request<AppState>) -> tide::Result {
     let app_state = req.state();
     get_data(&app_state.breed_id_list, &app_state.breed_owned_id, &req)
 }
+
 // GET /api/v1/market
 pub async fn get_from_market(req: Request<AppState>) -> tide::Result {
     let app_state = req.state();
     get_data(&app_state.market_id_list, &app_state.market_owned_id, &req)
 }
+
 // GET /api/v1/dragons [?limit=1&offset=1&owner=0x...]
 pub async fn get_dragons(req: Request<AppState>) -> tide::Result {
     let app_state = req.state();
@@ -68,8 +69,7 @@ fn get_data(
         let tokens = match owned_id.get(&page.owner) {
             Some(result) => result,
             None => {
-                let items = Vec::with_capacity(0);
-                return Ok(create_response(items, &page, 0)?.into())
+                return Ok(create_response(vec![], &page, 0)?.into())
             }
         };
         let real_end = tokens.len();

@@ -5,6 +5,8 @@ pub struct Page {
     pub limit: usize,
     pub offset: usize,
     pub owner: String,
+    pub stage: u8,
+    pub sort: u8,
 }
 impl Default for Page {
     fn default() -> Self {
@@ -12,6 +14,8 @@ impl Default for Page {
             limit: 6,
             offset: 0,
             owner: String::new(),
+            stage: 255,
+            sort: 0,
         }
     }
 }

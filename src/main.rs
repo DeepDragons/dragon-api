@@ -7,7 +7,7 @@ extern crate serde_json;
 mod web_api;
 use web_api::{routes::get_dragons, routes::get_dragon_by_id, routes::get_from_battle, routes::get_from_breed, routes::get_from_market};
 mod state;
-use state::reciver::create_app_state;
+use state::reciver::create;
 use tide::http::headers::HeaderValue;
 
 pub const DEFAULT_API_URL: &str = "127.0.0.1:8083";
@@ -16,7 +16,7 @@ pub const DEFAULT_API_URL: &str = "127.0.0.1:8083";
 async fn main() -> tide::Result<()> {
     dotenv::dotenv().ok();
 
-    let app_state = create_app_state().await;
+    let app_state = create().await;
     let api_url = match std::env::var("API_URL") {
         Ok(val) => val,
         Err(_) => String::from(DEFAULT_API_URL),
