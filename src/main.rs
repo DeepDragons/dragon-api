@@ -5,7 +5,10 @@ extern crate serde_derive;
 extern crate serde_json;
 
 mod web_api;
-use web_api::{routes::get_dragons, routes::get_dragon_by_id, routes::get_from_battle, routes::get_from_breed, routes::get_from_market};
+use web_api::{
+    routes::get_dragon_by_id, routes::get_dragons, routes::get_from_battle, routes::get_from_breed,
+    routes::get_from_market,
+};
 mod state;
 use state::reciver::create;
 use tide::http::headers::HeaderValue;
@@ -40,4 +43,3 @@ async fn main() -> tide::Result<()> {
     app.listen(api_url).await?;
     Ok(())
 }
-

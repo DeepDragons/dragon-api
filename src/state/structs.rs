@@ -61,6 +61,8 @@ pub struct Resp<T> {
     pub result: T,
 }
 
+type HMStrings = HashMap<String, String>;
+
 // https://github.com/DeepDragons/DragonZILContracts/blob/main/DragonZIL.scilla#L150
 #[derive(Deserialize, Clone)]
 pub struct MainState {
@@ -70,42 +72,46 @@ pub struct MainState {
     max_stage: String,
     migrate_option: Dummy,
     minters: HashMap<String, Dummy>,
-    operator_approvals: HashMap<String, String>,
+    operator_approvals: HMStrings,
     // Map ByStr20 Uint25 (owner -> count)
-    owned_token_count: HashMap<String, String>,
-    token_approvals: HashMap<String, String>,
+    owned_token_count: HMStrings,
+    token_approvals: HMStrings,
     // Map Uint256 Uint256 (id -> gens)
-    pub token_gen_battle: HashMap<String, String>,
+    pub token_gen_battle: HMStrings,
     // Map Uint256 Uint256 (id -> gens)
-    pub token_gen_image: HashMap<String, String>,
+    pub token_gen_image: HMStrings,
     token_id_count: String,
     //Map Uint256 ByStr20 (id -> owner)
-    pub token_owners: HashMap<String, String>,
+    pub token_owners: HMStrings,
     // Map Uint256 Uint32 (id -> stage)
-    pub token_stage: HashMap<String, String>,
+    pub token_stage: HMStrings,
     // Map Uint256 String (id -> uri)
-    pub token_uris: HashMap<String, String>,
+    pub token_uris: HMStrings,
     // Map ByStr20 (Map Uint256 Uint32) (owner -> (id -> stage))
-    pub tokens_owner_stage: HashMap<String, HashMap<String, String>>,
+    pub tokens_owner_stage: HashMap<String, HMStrings>,
     total_supply: String,
 }
 
+type HMVecStrings = HashMap<String, Vec<String>>;
 
 #[derive(Clone)]
 pub struct AppState {
     pub all_id_list: Vec<String>,
-    pub all_owned_id: HashMap<String, Vec<String>>, //    (owner -> Vec<id>)
-    pub all_id_owner: HashMap<String, String>,      //    (id -> Owner)
+    pub all_owned_id: HMVecStrings, //             (owner -> Vec<id>)
+    pub all_id_owner: HMStrings,    //                (id -> Owner)
+    pub all_id_rarity: HashMap<String, u8>, //     (id -> rarity)
+    pub all_id_strength: HashMap<String, u16>, // (id -> strength)
     pub main_state: MainState,
     pub battle_id_list: Vec<String>,
-    pub battle_id_price: HashMap<String, String>, //      (id -> price)
-    pub battle_owned_id: HashMap<String, Vec<String>>, // (owner -> Vec<id>)
+    pub battle_id_price: HMStrings,    //             (id -> price)
+    pub battle_owned_id: HMVecStrings, //          (owner -> Vec<id>)
     pub breed_id_list: Vec<String>,
-    pub breed_id_price: HashMap<String, String>, //       (id -> price)
-    pub breed_owned_id: HashMap<String, Vec<String>>, //  (owner -> Vec<id>)
+    pub breed_id_price: HMStrings,    //              (id -> price)
+    pub breed_owned_id: HMVecStrings, //           (owner -> Vec<id>)
     pub market_id_list: Vec<String>,
-    pub market_id_price_order: HashMap<String, (String, String)>, //      (id -> price)
-    pub market_owned_id: HashMap<String, Vec<String>>, // (owner -> Vec<id>)
+    pub market_id_price: HMStrings,    //             (id -> price)
+    pub market_id_order: HMStrings,    //             (id -> order_id)
+    pub market_owned_id: HMVecStrings, //          (owner -> Vec<id>)
 }
 
 /*

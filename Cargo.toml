@@ -1,6 +1,6 @@
 [package]
 name = "dragon-api"
-version = "0.0.10"
+version = "0.0.11"
 authors = ["Igor-Khan <khanigot@gmil.com>"]
 description = "API server for dragonzil"
 repository = "https://github.com/DeepDragons/dragon-api"

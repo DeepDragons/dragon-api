@@ -1,4 +1,3 @@
-
 #[derive(Deserialize)]
 #[serde(default)]
 pub struct Page {
@@ -6,7 +5,9 @@ pub struct Page {
     pub offset: usize,
     pub owner: String,
     pub stage: u8,
-    pub sort: u8,
+    pub sort: u8, // 0 and _ - id, 1 - rarity, 2 - strong, 3 - price,
+    pub start_price: u64,
+    pub end_price: u64,
 }
 impl Default for Page {
     fn default() -> Self {
@@ -16,6 +17,8 @@ impl Default for Page {
             owner: String::new(),
             stage: 255,
             sort: 0,
+            start_price: 0,
+            end_price: u64::MAX,
         }
     }
 }
