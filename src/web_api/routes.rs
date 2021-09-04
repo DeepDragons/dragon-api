@@ -161,6 +161,9 @@ fn create_error(code: tide::StatusCode, err_text: &str) -> tide::Response {
 }
 fn calc_indexes(page: &Page, real_end: usize) -> Option<(usize, usize)> {
     let start = page.offset * page.limit;
+    if real_end == 0 {
+        return Some((0, 0));
+    }
     if start >= real_end {
         return None;
     }
