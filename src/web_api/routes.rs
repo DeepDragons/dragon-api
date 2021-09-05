@@ -1,5 +1,5 @@
 use crate::state::AppState;
-use crate::web_api::{Item, OkResponse, Page, Pagination};
+use crate::web_api::{Handler, Item, OkResponse, Page, Pagination};
 use std::collections::HashMap;
 use tide::{Request, Response, StatusCode};
 
@@ -24,92 +24,102 @@ pub async fn get_dragon_by_id(req: Request<AppState>) -> tide::Result {
 
 // GET /api/v1/battle
 pub async fn get_from_battle(req: Request<AppState>) -> tide::Result {
-    let app_state = req.state();
-    get_data(&app_state.battle_id_list, &app_state.battle_owned_id, &req)
+    get_priced_dragons(&Handler::Battle, &req)
 }
 
 // GET /api/v1/breed
 pub async fn get_from_breed(req: Request<AppState>) -> tide::Result {
-    let app_state = req.state();
-    get_data(&app_state.breed_id_list, &app_state.breed_owned_id, &req)
+    get_priced_dragons(&Handler::Breed, &req)
 }
 
 // GET /api/v1/market
 pub async fn get_from_market(req: Request<AppState>) -> tide::Result {
-    let app_state = req.state();
-    let page: Page = req.query()?;
-    if page.owner.is_empty() {
-        let mut tokens = Vec::with_capacity(app_state.market_id_list.len());
-        let m_prices = &app_state.market_id_price;
-        // if we have some filters
-        if page.stage != 255 || page.start_price != 0 || page.end_price != u64::MAX {
-            for str_id in &app_state.market_id_list {
-                let price = get_price(str_id, m_prices)?;
-                let stage = get_element(&app_state.main_state.token_stage, str_id)?
-                    .parse::<u8>()
-                    .map_err(|e| tide::Error::new(StatusCode::InternalServerError, e))?;
-                if price >= u128::from(page.start_price)
-                    && price <= u128::from(page.end_price)
-                    && (page.stage == 255 || page.stage == stage)
-                {
-                    tokens.push(str_id.clone());
-                }
-            }
-        } else if page.sort != 1 && page.sort != 2 && page.sort != 3 {
-            // if we don't have filters and we have default sort by id
-            return create_dragons(&app_state.market_id_list, &req);
-        } else {
-            // if we don't have filters and we have some sort
-            tokens = app_state.market_id_list.clone();
-        }
-        match page.sort {
-            1 => {
-                let some_cmp = |a: &String, b: &String| {
-                    app_state
-                        .all_id_rarity
-                        .get(a)
-                        .unwrap_or(&0)
-                        .cmp(app_state.all_id_rarity.get(b).unwrap_or(&0))
-                };
-                // TODO check sort function
-                tokens.sort_unstable_by(some_cmp);
-            }
-            2 => {
-                let some_cmp = |a: &String, b: &String| {
-                    app_state
-                        .all_id_strength
-                        .get(a)
-                        .unwrap_or(&0)
-                        .cmp(app_state.all_id_strength.get(b).unwrap_or(&0))
-                };
-                // TODO check sort function
-                tokens.sort_unstable_by(some_cmp);
-            }
-            3 => {
-                let some_cmp = |a: &String, b: &String| {
-                    get_price(a, m_prices)
-                        .unwrap_or(0)
-                        .cmp(&get_price(b, m_prices).unwrap_or(0))
-                };
-                // TODO check sort function
-                tokens.sort_unstable_by(some_cmp);
-            }
-            _ => {}
-        }
-        create_dragons(&tokens, &req)
-    } else {
-        let tokens = match app_state.market_owned_id.get(&page.owner) {
-            Some(result) => result,
-            None => return Ok(create_response(vec![], &page, 0)?.into()),
-        };
-        create_dragons(tokens, &req)
-    }
+    get_priced_dragons(&Handler::Market, &req)
 }
 
 // GET /api/v1/dragons [?limit=1&offset=1&owner=0x...]
 pub async fn get_dragons(req: Request<AppState>) -> tide::Result {
     let app_state = req.state();
-    get_data(&app_state.all_id_list, &app_state.all_owned_id, &req)
+    let page: Page = req.query()?;
+    if page.owner.is_empty() {
+        create_dragons(&app_state.all_id_list, &req)
+    } else {
+        let tokens = match app_state.all_owned_id.get(&page.owner) {
+            Some(result) => result,
+            None => return Ok(create_response(vec![], &page, 0)?.into()),
+        };
+        create_dragons(
+            &filter_n_sort(tokens, false, &app_state.main_state.token_stage, &req)?,
+            &req,
+        )
+    }
+}
+
+fn filter_n_sort(
+    in_tokens: &[String],
+    is_priced: bool,
+    prices: &HashMap<String, String>,
+    req: &Request<AppState>,
+) -> Result<Vec<String>, tide::Error> {
+    let app_state = req.state();
+    let page: Page = req.query()?;
+    let mut tokens = Vec::with_capacity(in_tokens.len());
+    // if we have some filters
+    if page.stage != 255 || page.start_price != 0 || page.end_price != u64::MAX {
+        for str_id in in_tokens {
+            let price = if is_priced {
+                get_price(str_id, prices)?
+            } else {
+                42
+            };
+
+            let stage = get_element(&app_state.main_state.token_stage, str_id)?
+                .parse::<u8>()
+                .map_err(|e| tide::Error::new(StatusCode::InternalServerError, e))?;
+            if (!is_priced
+                || price >= u128::from(page.start_price) && price <= u128::from(page.end_price))
+                && (page.stage == 255 || page.stage == stage)
+            {
+                tokens.push(str_id.clone());
+            }
+        }
+    } else {
+        tokens = in_tokens.to_owned();
+    }
+    match page.sort {
+        1 => {
+            let some_cmp = |a: &String, b: &String| {
+                app_state
+                    .all_id_rarity
+                    .get(b)
+                    .unwrap_or(&0)
+                    .cmp(app_state.all_id_rarity.get(a).unwrap_or(&0))
+            };
+            tokens.sort_unstable_by(some_cmp);
+        }
+        2 => {
+            let some_cmp = |a: &String, b: &String| {
+                app_state
+                    .all_id_strength
+                    .get(b)
+                    .unwrap_or(&0)
+                    .cmp(app_state.all_id_strength.get(a).unwrap_or(&0))
+            };
+            tokens.sort_unstable_by(some_cmp);
+        }
+        3 => {
+            if is_priced {
+                let some_cmp = |a: &String, b: &String| {
+                    get_price(a, prices)
+                        .unwrap_or(0)
+                        .cmp(&get_price(b, prices).unwrap_or(0))
+                };
+                tokens.sort_unstable_by(some_cmp);
+            }
+        }
+        _ => {}
+    }
+    Ok(tokens)
 }
 fn get_price(str_id: &str, h_m: &HashMap<String, String>) -> Result<u128, tide::Error> {
     h_m.get(str_id)
@@ -117,20 +127,32 @@ fn get_price(str_id: &str, h_m: &HashMap<String, String>) -> Result<u128, tide::
         .parse::<u128>()
         .map_err(|e| tide::Error::new(StatusCode::InternalServerError, e))
 }
-fn get_data(
-    all_tokens: &[String],
-    owned_id: &HashMap<String, Vec<String>>,
-    req: &Request<AppState>,
-) -> tide::Result {
+fn get_priced_dragons(what: &Handler, req: &Request<AppState>) -> tide::Result {
+    let app_state = req.state();
     let page: Page = req.query()?;
+    let prices = match what {
+        Handler::Market => &app_state.market_id_price,
+        Handler::Battle => &app_state.battle_id_price,
+        Handler::Breed => &app_state.breed_id_price,
+    };
     if page.owner.is_empty() {
-        create_dragons(all_tokens, req)
+        let all_tokens = match what {
+            Handler::Market => &app_state.market_id_list,
+            Handler::Battle => &app_state.battle_id_list,
+            Handler::Breed => &app_state.breed_id_list,
+        };
+        create_dragons(&filter_n_sort(all_tokens, true, prices, req)?, req)
     } else {
+        let owned_id = match what {
+            Handler::Market => &app_state.market_owned_id,
+            Handler::Battle => &app_state.battle_owned_id,
+            Handler::Breed => &app_state.breed_owned_id,
+        };
         let tokens = match owned_id.get(&page.owner) {
             Some(result) => result,
             None => return Ok(create_response(vec![], &page, 0)?.into()),
         };
-        create_dragons(tokens, req)
+        create_dragons(&filter_n_sort(tokens, true, prices, req)?, req)
     }
 }
 fn create_dragons(tokens: &[String], req: &Request<AppState>) -> tide::Result {

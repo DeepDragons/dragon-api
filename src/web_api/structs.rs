@@ -23,6 +23,12 @@ impl Default for Page {
     }
 }
 
+pub enum Handler {
+    Market,
+    Battle,
+    Breed,
+}
+
 #[derive(Serialize, Clone)]
 pub struct ShortItem {
     pub id: u64,
