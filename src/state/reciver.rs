@@ -1,17 +1,28 @@
 use crate::state::*;
+use reqwest::StatusCode;
 use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
+use tokio::time::{sleep, Duration};
 
 async fn do_request(body: &'static str) -> String {
     let client = reqwest::Client::new();
-    let response = client
-        .post(URL)
-        .body(body)
-        .send()
-        .await
-        // TODO error handling
-        .expect("Post request failed");
-    // TODO check server error code and error handling
-    let text = response.text().await.expect("1");
+    let text: String;
+    let mut delay = 0;
+    loop {
+        sleep(Duration::from_secs(delay)).await;
+        delay = (delay + 1) % 15;
+        let response = match client.post(URL).body(body).send().await {
+            Ok(result) => result,
+            Err(_) => continue,
+        };
+        if response.status() == StatusCode::OK {
+            text = match response.text().await {
+                Ok(result) => result, // TODO return result and remove text
+                Err(_) => continue,
+            };
+            break;
+        }
+    }
     // TODO remove debug println and text var...
     if text.len() < 3000 {
         println!("{}", text);
@@ -151,6 +162,43 @@ pub async fn create() -> AppState {
         market_id_price,
         market_id_order,
         market_owned_id,
+    }
+}
+pub async fn get_block_num() -> u128 {
+    loop {
+        let text = do_request(GETMIMIEPOCH).await;
+        let response: Resp<String> = match serde_json::from_str(&text) {
+            Ok(result) => result,
+            Err(_) => continue,
+        };
+        match response.result.parse::<u128>() {
+            Ok(result) => return result,
+            Err(_) => continue,
+        }
+    }
+}
+pub async fn update_state(start_num: u128, app_state: Arc<Mutex<Box<AppState>>>) {
+    let mut block_num = start_num;
+    let mut delay = 10;
+    loop {
+        sleep(Duration::from_secs(delay)).await;
+        let cur_num = get_block_num().await;
+        if cur_num <= block_num {
+            if block_num % 100 == 0 {
+                delay = 10;
+            }
+            if delay == 1 {
+                delay = 2;
+            } else {
+                delay = 1;
+            }
+            continue;
+        }
+        delay = 25;
+        block_num = cur_num;
+        let new_state = create().await;
+        let mut cur_state = app_state.lock().unwrap();
+        *cur_state = Box::new(new_state);
     }
 }
 // https://github.com/DeepDragons/dragon-zil/blob/master/src/mixins/utils.js#L50

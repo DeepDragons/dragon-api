@@ -1,12 +1,13 @@
 use crate::state::AppState;
 use crate::web_api::{Handler, Item, OkResponse, Page, Pagination};
 use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
 use tide::{Request, Response, StatusCode};
 
 // GET /api/v1/dragons/:id
-pub async fn get_dragon_by_id(req: Request<AppState>) -> tide::Result {
+pub async fn get_dragon_by_id(req: Request<Arc<Mutex<Box<AppState>>>>) -> tide::Result {
     let str_id = req.param("id")?;
-    let app_state = req.state();
+    let app_state = &req.state().lock().unwrap();
     match app_state.main_state.token_stage.get(str_id) {
         Some(_) => {
             let page = Page {
@@ -23,34 +24,41 @@ pub async fn get_dragon_by_id(req: Request<AppState>) -> tide::Result {
 }
 
 // GET /api/v1/battle
-pub async fn get_from_battle(req: Request<AppState>) -> tide::Result {
+pub async fn get_from_battle(req: Request<Arc<Mutex<Box<AppState>>>>) -> tide::Result {
     get_priced_dragons(&Handler::Battle, &req)
 }
 
 // GET /api/v1/breed
-pub async fn get_from_breed(req: Request<AppState>) -> tide::Result {
+pub async fn get_from_breed(req: Request<Arc<Mutex<Box<AppState>>>>) -> tide::Result {
     get_priced_dragons(&Handler::Breed, &req)
 }
 
 // GET /api/v1/market
-pub async fn get_from_market(req: Request<AppState>) -> tide::Result {
+pub async fn get_from_market(req: Request<Arc<Mutex<Box<AppState>>>>) -> tide::Result {
     get_priced_dragons(&Handler::Market, &req)
 }
 
 // GET /api/v1/dragons [?limit=1&offset=1&owner=0x...]
-pub async fn get_dragons(req: Request<AppState>) -> tide::Result {
-    let app_state = req.state();
-    let page: Page = req.query()?;
+pub async fn get_dragons(req: Request<Arc<Mutex<Box<AppState>>>>) -> tide::Result {
+    let app_state = &req.state().lock().unwrap();
+    let page: &Page = &req.query()?;
     if page.owner.is_empty() {
-        create_dragons(&app_state.all_id_list, &req)
+        create_dragons(&app_state.all_id_list, page, app_state)
     } else {
         let tokens = match app_state.all_owned_id.get(&page.owner) {
             Some(result) => result,
-            None => return Ok(create_response(vec![], &page, 0)?.into()),
+            None => return Ok(create_response(vec![], page, 0)?.into()),
         };
         create_dragons(
-            &filter_n_sort(tokens, false, &app_state.main_state.token_stage, &req)?,
-            &req,
+            &filter_n_sort(
+                tokens,
+                false,
+                &app_state.main_state.token_stage,
+                page,
+                app_state,
+            )?,
+            page,
+            app_state,
         )
     }
 }
@@ -59,13 +67,12 @@ fn filter_n_sort(
     in_tokens: &[String],
     is_priced: bool,
     prices: &HashMap<String, String>,
-    req: &Request<AppState>,
+    page: &Page,
+    app_state: &AppState,
 ) -> Result<Vec<String>, tide::Error> {
-    let app_state = req.state();
-    let page: Page = req.query()?;
     let mut tokens = Vec::with_capacity(in_tokens.len());
     // if we have some filters
-    if page.stage != 255 || page.start_price != 0 || page.end_price != u64::MAX {
+    if page.stage != u8::MAX || page.start_price != 0 || page.end_price != u64::MAX {
         for str_id in in_tokens {
             let price = if is_priced {
                 get_price(str_id, prices)?
@@ -78,7 +85,7 @@ fn filter_n_sort(
                 .map_err(|e| tide::Error::new(StatusCode::InternalServerError, e))?;
             if (!is_priced
                 || price >= u128::from(page.start_price) && price <= u128::from(page.end_price))
-                && (page.stage == 255 || page.stage == stage)
+                && (page.stage == u8::MAX || page.stage == stage)
             {
                 tokens.push(str_id.clone());
             }
@@ -127,9 +134,9 @@ fn get_price(str_id: &str, h_m: &HashMap<String, String>) -> Result<u128, tide::
         .parse::<u128>()
         .map_err(|e| tide::Error::new(StatusCode::InternalServerError, e))
 }
-fn get_priced_dragons(what: &Handler, req: &Request<AppState>) -> tide::Result {
-    let app_state = req.state();
-    let page: Page = req.query()?;
+fn get_priced_dragons(what: &Handler, req: &Request<Arc<Mutex<Box<AppState>>>>) -> tide::Result {
+    let app_state = &req.state().lock().unwrap();
+    let page: &Page = &req.query()?;
     let prices = match what {
         Handler::Market => &app_state.market_id_price,
         Handler::Battle => &app_state.battle_id_price,
@@ -141,7 +148,11 @@ fn get_priced_dragons(what: &Handler, req: &Request<AppState>) -> tide::Result {
             Handler::Battle => &app_state.battle_id_list,
             Handler::Breed => &app_state.breed_id_list,
         };
-        create_dragons(&filter_n_sort(all_tokens, true, prices, req)?, req)
+        create_dragons(
+            &filter_n_sort(all_tokens, true, prices, page, app_state)?,
+            page,
+            app_state,
+        )
     } else {
         let owned_id = match what {
             Handler::Market => &app_state.market_owned_id,
@@ -150,25 +161,27 @@ fn get_priced_dragons(what: &Handler, req: &Request<AppState>) -> tide::Result {
         };
         let tokens = match owned_id.get(&page.owner) {
             Some(result) => result,
-            None => return Ok(create_response(vec![], &page, 0)?.into()),
+            None => return Ok(create_response(vec![], page, 0)?.into()),
         };
-        create_dragons(&filter_n_sort(tokens, true, prices, req)?, req)
+        create_dragons(
+            &filter_n_sort(tokens, true, prices, page, app_state)?,
+            page,
+            app_state,
+        )
     }
 }
-fn create_dragons(tokens: &[String], req: &Request<AppState>) -> tide::Result {
-    let page: Page = req.query()?;
+fn create_dragons(tokens: &[String], page: &Page, app_state: &AppState) -> tide::Result {
     if page.limit == 0 {
         return Ok(create_error(
             StatusCode::BadRequest,
             "Limit cannot be zero.",
         ));
     }
-    let app_state = req.state();
     let real_end = tokens.len();
-    match calc_indexes(&page, real_end) {
+    match calc_indexes(page, real_end) {
         Some((start, end)) => {
             let items = collect_items(&tokens[start..end], app_state)?;
-            Ok(create_response(items, &page, real_end)?.into())
+            Ok(create_response(items, page, real_end)?.into())
         }
         None => Ok(create_error(StatusCode::BadRequest, "Offset is too big.")),
     }
@@ -193,11 +206,11 @@ fn calc_indexes(page: &Page, real_end: usize) -> Option<(usize, usize)> {
 }
 fn collect_items<'a>(
     tokens: &'a [String],
-    app_s: &'a AppState,
+    app_state: &'a AppState,
 ) -> Result<Vec<Item<'a>>, tide::Error> {
     let mut items = Vec::with_capacity(tokens.len());
     for str_id in tokens {
-        items.push(create_item(str_id, app_s)?);
+        items.push(create_item(str_id, app_state)?);
     }
     Ok(items)
 }
@@ -214,8 +227,8 @@ fn create_item<'a>(str_id: &'a str, app_s: &'a AppState) -> Result<Item<'a>, tid
             .map_err(|e| tide::Error::new(StatusCode::InternalServerError, e))?,
         rarity: *get_element(&app_s.all_id_rarity, str_id)?,
         // TODO add real statistics
-        fight_win: 666,
-        fight_lose: 13,
+        fight_win: 0,
+        fight_lose: 0,
         actions: collect_actions(str_id, app_s),
         // TODO write true parents
         parents: [].to_vec(),

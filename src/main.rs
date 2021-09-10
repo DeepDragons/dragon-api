@@ -10,7 +10,8 @@ use web_api::{
     routes::get_from_market,
 };
 mod state;
-use state::reciver::create;
+use state::reciver::{create, get_block_num, update_state};
+use std::sync::{Arc, Mutex};
 use tide::http::headers::HeaderValue;
 
 pub const DEFAULT_API_URL: &str = "127.0.0.1:8083";
@@ -19,7 +20,12 @@ pub const DEFAULT_API_URL: &str = "127.0.0.1:8083";
 async fn main() -> tide::Result<()> {
     dotenv::dotenv().ok();
 
-    let app_state = create().await;
+    let app_state = Arc::new(Mutex::new(Box::new(create().await)));
+    let start_block_num = get_block_num().await;
+    let state_ref = Arc::clone(&app_state);
+    tokio::spawn(async move {
+        update_state(start_block_num, state_ref).await;
+    });
     let api_url = match std::env::var("API_URL") {
         Ok(val) => val,
         Err(_) => String::from(DEFAULT_API_URL),

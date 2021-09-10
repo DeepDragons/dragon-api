@@ -4,7 +4,8 @@ pub const URL: &str = "https://api.zilliqa.com/";
 
 // https://dev.zilliqa.com/docs/apis/api-blockchain-get-current-mini-epoch
 // Returns the current TX block number of the network.
-// pub const GETMIMIEPOCH: &str = "{\"id\":\"1\",\"jsonrpc\":\"2.0\",\"method\":\"GetCurrentMiniEpoch\",\"params\":[]}";
+pub const GETMIMIEPOCH: &str =
+    "{\"id\":\"1\",\"jsonrpc\":\"2.0\",\"method\":\"GetCurrentMiniEpoch\",\"params\":[]}";
 
 // https://dev.zilliqa.com/docs/apis/api-contract-get-smartcontract-state/
 // Returns the state (mutable) variables of a smart contract address
