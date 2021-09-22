@@ -14,7 +14,7 @@ pub const MAINSTATE: &str = "{\"id\":\"1\",\"jsonrpc\":\"2.0\",\"method\":\"GetS
 // https://dev.zilliqa.com/docs/apis/api-contract-get-smartcontract-substate/
 // Returns the state (or a part specified) of a smart contract address
 pub const BATTLESTATE: &str = "{\"id\":\"1\",\"jsonrpc\":\"2.0\",\"method\":\"GetSmartContractSubState\",\"params\":[\"21B870dc77921B21F9A98a732786Bf812888193c\",\"waiting_list\",[]]}";
-pub const BREEDSTATE: &str = "{\"id\":\"1\",\"jsonrpc\":\"2.0\",\"method\":\"GetSmartContractSubState\",\"params\":[\"71435501608BE1993C4146f9CAbfa3f547205F6f\",\"waiting_list\",[]]}";
+pub const BREEDSTATE: &str = "{\"id\":\"1\",\"jsonrpc\":\"2.0\",\"method\":\"GetSmartContractSubState\",\"params\":[\"ade7886ec4a36cb0a7de2f5d18cc7bdae12e3650\",\"waiting_list\",[]]}";
 pub const MARKETSTATE: &str = "{\"id\":\"1\",\"jsonrpc\":\"2.0\",\"method\":\"GetSmartContractSubState\",\"params\":[\"7b9b80aaF561Ecd4e89ea55D83d59Ab7aC01A575\",\"orderbook\",[]]}";
 
 #[derive(Deserialize, Clone)]
