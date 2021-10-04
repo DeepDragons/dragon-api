@@ -30,6 +30,8 @@ async fn do_request(body: &'static str) -> String {
     text
 }
 pub async fn create() -> AppState {
+    let text = do_request(NAMESTATE).await;
+    let name_resp: Resp<NameState> = serde_json::from_str(&text).expect("name state");
     let text = do_request(BREEDSTATE).await;
     let breed_resp: Resp<WaitState<BreedItem>> = serde_json::from_str(&text).expect("breed state");
     let mut breed_id_list: Vec<String> = breed_resp.result.waiting_list.keys().cloned().collect();
@@ -162,6 +164,7 @@ pub async fn create() -> AppState {
         market_id_price,
         market_id_order,
         market_owned_id,
+        id_name: name_resp.result.dragons_name,
     }
 }
 pub async fn get_block_num() -> u128 {

@@ -16,6 +16,7 @@ pub const MAINSTATE: &str = "{\"id\":\"1\",\"jsonrpc\":\"2.0\",\"method\":\"GetS
 pub const BATTLESTATE: &str = "{\"id\":\"1\",\"jsonrpc\":\"2.0\",\"method\":\"GetSmartContractSubState\",\"params\":[\"21B870dc77921B21F9A98a732786Bf812888193c\",\"waiting_list\",[]]}";
 pub const BREEDSTATE: &str = "{\"id\":\"1\",\"jsonrpc\":\"2.0\",\"method\":\"GetSmartContractSubState\",\"params\":[\"ade7886ec4a36cb0a7de2f5d18cc7bdae12e3650\",\"waiting_list\",[]]}";
 pub const MARKETSTATE: &str = "{\"id\":\"1\",\"jsonrpc\":\"2.0\",\"method\":\"GetSmartContractSubState\",\"params\":[\"7b9b80aaF561Ecd4e89ea55D83d59Ab7aC01A575\",\"orderbook\",[]]}";
+pub const NAMESTATE: &str = "{\"id\":\"1\",\"jsonrpc\":\"2.0\",\"method\":\"GetSmartContractSubState\",\"params\":[\"0F5d8f74817E2BC5A09521149094A7860c691D42\",\"dragons_name\",[]]}";
 
 #[derive(Deserialize, Clone)]
 struct Dummy {
@@ -53,6 +54,11 @@ pub struct BreedItem {
 #[derive(Deserialize)]
 pub struct WaitState<T> {
     pub waiting_list: HashMap<String, T>,
+}
+
+#[derive(Deserialize)]
+pub struct NameState {
+    pub dragons_name: HashMap<String, String>,
 }
 
 #[derive(Deserialize)]
@@ -113,6 +119,7 @@ pub struct AppState {
     pub market_id_price: HMStrings,    //             (id -> price)
     pub market_id_order: HMStrings,    //             (id -> order_id)
     pub market_owned_id: HMVecStrings, //          (owner -> Vec<id>)
+    pub id_name: HMStrings,            //            (id -> name)
 }
 
 /*

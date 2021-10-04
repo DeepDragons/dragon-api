@@ -216,8 +216,13 @@ fn collect_items<'a>(
 }
 fn create_item<'a>(str_id: &'a str, app_s: &'a AppState) -> Result<Item<'a>, tide::Error> {
     let ms = &app_s.main_state;
+    let name = match get_element(&app_s.id_name, str_id) {
+        Ok(name) => name,
+        Err(_) => "",
+    };
     Ok(Item {
         id: str_id,
+        name,
         owner: get_element(&app_s.all_id_owner, str_id)?,
         url: get_element(&ms.token_uris, str_id)?,
         gen_image: get_element(&ms.token_gen_image, str_id)?,

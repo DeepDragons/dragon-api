@@ -38,6 +38,7 @@ pub struct ShortItem {
 #[derive(Serialize, Clone)]
 pub struct Item<'a> {
     pub id: &'a str,
+    pub name: &'a str,
     pub owner: &'a str,
     pub url: &'a str,
     pub gen_image: &'a str,
