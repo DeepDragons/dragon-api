@@ -79,7 +79,7 @@ pub struct MainState {
     max_stage: String,
     migrate_option: Dummy,
     minters: HashMap<String, Dummy>,
-    operator_approvals: HMStrings,
+    operator_approvals: HashMap<String, HashMap<String, Dummy>>,
     // Map ByStr20 Uint25 (owner -> count)
     owned_token_count: HMStrings,
     token_approvals: HMStrings,
