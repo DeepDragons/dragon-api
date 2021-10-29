@@ -6,7 +6,7 @@ use tokio::time::{sleep, Duration};
 
 async fn do_request(body: &'static str) -> String {
     let client = reqwest::Client::new();
-    let text: String;
+    let mut text: String;
     let mut delay = 0;
     loop {
         sleep(Duration::from_secs(delay)).await;
@@ -17,9 +17,13 @@ async fn do_request(body: &'static str) -> String {
         };
         if response.status() == StatusCode::OK {
             text = match response.text().await {
-                Ok(result) => result, // TODO return result and remove text
+                Ok(result) => result,
                 Err(_) => continue,
             };
+            // check for node bug "Address does not exist"
+            if text[0..8] == *"{\"error\"" {
+                continue;
+            }
             break;
         }
     }
