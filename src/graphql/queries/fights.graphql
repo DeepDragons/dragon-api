@@ -1,0 +1,38 @@
+query Fights($contractAddr: String!, $page: Int, $perPage: Int) {
+  txPagination(
+    page: $page
+    perPage: $perPage
+    filter: {
+      OR: [
+        {
+          toAddr: $contractAddr,
+          receipt: {
+            success: true
+            event_logs: {
+              _eventname: "AfterFightWinLose"
+            }
+          }
+        }
+      ]
+    }
+    sort: TIMESTAMP_ASC
+  ) {
+    pageInfo {
+      currentPage
+      perPage
+    }
+    items {
+      receipt {
+        event_logs {
+          address
+          _eventname
+          params {
+            vname
+            type
+            value
+          }
+        }
+      }
+    }
+  }
+}
