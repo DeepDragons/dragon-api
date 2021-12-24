@@ -231,8 +231,8 @@ fn create_item<'a>(str_id: &'a str, app_s: &'a AppState) -> Result<Item<'a>, tid
             .parse()
             .map_err(|e| tide::Error::new(StatusCode::InternalServerError, e))?,
         rarity: *get_element(&app_s.all_id_rarity, str_id)?,
-        fights_win: get_element(&app_s.all_id_fights, str_id)?.0,
-        fights_lose: get_element(&app_s.all_id_fights, str_id)?.1,
+        fights_win: get_element_or_zero(&app_s.all_id_fights, str_id).0,
+        fights_lose: get_element_or_zero(&app_s.all_id_fights, str_id).1,
         actions: collect_actions(str_id, app_s),
         // TODO write true parents
         parents: [].to_vec(),
@@ -258,6 +258,9 @@ fn collect_actions<'a>(str_id: &str, app_s: &'a AppState) -> Vec<(u8, &'a str)> 
 }
 fn get_element<'a, T>(h_m: &'a HashMap<String, T>, str_id: &str) -> Result<&'a T, tide::Error> {
     h_m.get(str_id).ok_or_else(internal_error)
+}
+fn get_element_or_zero(h_m: &HashMap<String, (u32, u32)>, str_id: &str) -> (u32, u32) {
+    *h_m.get(str_id).unwrap_or(&(0, 0))
 }
 fn create_response(items: Vec<Item>, page: &Page, records: usize) -> Result<String, tide::Error> {
     let cur_pag = Pagination {
