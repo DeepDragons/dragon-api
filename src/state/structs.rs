@@ -1,6 +1,9 @@
 use std::collections::HashMap;
 
 pub const URL: &str = "https://api.zilliqa.com/";
+pub const APPOLO_URL: &str = "https://devex-apollo.zilliqa.com/";
+
+pub const GETFIGHT: &str = "{\"operationName\":\"Fights\",\"variables\":{\"contractAddr\":\"0x21b870dc77921b21f9a98a732786bf812888193c\",\"page\":1,\"perPage\":2147483647},\"query\":\"query Fights($contractAddr: String!, $page: Int, $perPage: Int) {txPagination(page: $page, perPage: $perPage, filter: {OR: [{toAddr: $contractAddr, receipt: {success: true, event_logs: {_eventname: \\\"AfterFightWinLose\\\"}}}]}, sort: TIMESTAMP_ASC) {pageInfo {currentPage perPage pageCount} items {receipt {event_logs { _eventname params {vname value}}}}}}\"}";
 
 // https://dev.zilliqa.com/docs/apis/api-blockchain-get-current-mini-epoch
 // Returns the current TX block number of the network.
@@ -17,6 +20,51 @@ pub const BATTLESTATE: &str = "{\"id\":\"1\",\"jsonrpc\":\"2.0\",\"method\":\"Ge
 pub const BREEDSTATE: &str = "{\"id\":\"1\",\"jsonrpc\":\"2.0\",\"method\":\"GetSmartContractSubState\",\"params\":[\"ade7886ec4a36cb0a7de2f5d18cc7bdae12e3650\",\"waiting_list\",[]]}";
 pub const MARKETSTATE: &str = "{\"id\":\"1\",\"jsonrpc\":\"2.0\",\"method\":\"GetSmartContractSubState\",\"params\":[\"7b9b80aaF561Ecd4e89ea55D83d59Ab7aC01A575\",\"orderbook\",[]]}";
 pub const NAMESTATE: &str = "{\"id\":\"1\",\"jsonrpc\":\"2.0\",\"method\":\"GetSmartContractSubState\",\"params\":[\"0F5d8f74817E2BC5A09521149094A7860c691D42\",\"dragons_name\",[]]}";
+
+#[derive(Deserialize)]
+pub struct EventItem {
+    pub vname: String,
+    pub value: String,
+}
+
+#[derive(Deserialize)]
+pub struct EventItems {
+    pub _eventname: String,
+    pub params: Vec<EventItem>,
+}
+
+#[derive(Deserialize)]
+pub struct EventLogs {
+    pub event_logs: Vec<EventItems>,
+}
+
+#[derive(Deserialize)]
+pub struct Receipt {
+    pub receipt: EventLogs,
+}
+
+#[derive(Deserialize)]
+pub struct PageInfo {
+    pub currentPage: u64,
+    pub perPage: u64,
+    pub pageCount: u64,
+}
+
+#[derive(Deserialize)]
+pub struct TxPaginationItem {
+    pub pageInfo: PageInfo,
+    pub items: Vec<Receipt>,
+}
+
+#[derive(Deserialize)]
+pub struct TxPagination {
+    pub txPagination: TxPaginationItem,
+}
+
+#[derive(Deserialize)]
+pub struct Data {
+    pub data: TxPagination,
+}
 
 #[derive(Deserialize, Clone)]
 struct Dummy {
@@ -108,6 +156,7 @@ pub struct AppState {
     pub all_id_owner: HMStrings,    //                (id -> Owner)
     pub all_id_rarity: HashMap<String, u8>, //     (id -> rarity)
     pub all_id_strength: HashMap<String, u16>, // (id -> strength)
+    pub all_id_fights: HashMap<String, (u32, u32)>, // (id -> (win, lose))
     pub main_state: MainState,
     pub battle_id_list: Vec<String>,
     pub battle_id_price: HMStrings,    //             (id -> price)

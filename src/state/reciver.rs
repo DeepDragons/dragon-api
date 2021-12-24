@@ -4,14 +4,20 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use tokio::time::{sleep, Duration};
 
-async fn do_request(body: &'static str) -> String {
+async fn do_request(body: &'static str, url: &'static str) -> String {
     let client = reqwest::Client::new();
     let mut text: String;
     let mut delay = 0;
     loop {
         sleep(Duration::from_secs(delay)).await;
         delay = (delay + 1) % 15;
-        let response = match client.post(URL).body(body).send().await {
+        let response = match client
+            .post(url)
+            .header("content-type", "application/json")
+            .body(body)
+            .send()
+            .await
+        {
             Ok(result) => result,
             Err(_) => continue,
         };
@@ -34,9 +40,9 @@ async fn do_request(body: &'static str) -> String {
     text
 }
 pub async fn create() -> AppState {
-    let text = do_request(NAMESTATE).await;
+    let text = do_request(NAMESTATE, URL).await;
     let name_resp: Resp<NameState> = serde_json::from_str(&text).expect("name state");
-    let text = do_request(BREEDSTATE).await;
+    let text = do_request(BREEDSTATE, URL).await;
     let breed_resp: Resp<WaitState<BreedItem>> = serde_json::from_str(&text).expect("breed state");
     let mut breed_id_list: Vec<String> = breed_resp.result.waiting_list.keys().cloned().collect();
     let mut breed_owned_id: HashMap<String, Vec<String>> = HashMap::new();
@@ -50,7 +56,7 @@ pub async fn create() -> AppState {
             }
         }
     }
-    let text = do_request(MARKETSTATE).await;
+    let text = do_request(MARKETSTATE, URL).await;
     let market_resp: Resp<OrderState> = serde_json::from_str(&text).expect("market state");
     let market_len = market_resp.result.orderbook.len();
     let mut market_id_price: HashMap<String, String> = HashMap::with_capacity(market_len);
@@ -77,10 +83,10 @@ pub async fn create() -> AppState {
             }
         };
     }
-    let text = do_request(MAINSTATE).await;
+    let text = do_request(MAINSTATE, URL).await;
     // TODO error handling
     let main_resp: Resp<MainState> = serde_json::from_str(&text).expect("main state");
-    let text = do_request(BATTLESTATE).await;
+    let text = do_request(BATTLESTATE, URL).await;
     // TODO error handling
     let battle_resp: Resp<WaitState<String>> = serde_json::from_str(&text).expect("battle state");
     drop(text);
@@ -157,6 +163,7 @@ pub async fn create() -> AppState {
         all_id_owner,
         all_id_rarity,
         all_id_strength,
+        all_id_fights: get_fights_history(all_len).await,
         main_state: main_resp.result,
         battle_id_list,
         battle_id_price: battle_resp.result.waiting_list,
@@ -171,9 +178,55 @@ pub async fn create() -> AppState {
         id_name: name_resp.result.dragons_name,
     }
 }
+async fn get_fights_history(hmap_size: usize) -> HashMap<String, (u32, u32)> {
+    let text = do_request(GETFIGHT, APPOLO_URL).await;
+    let fight_events: Data = serde_json::from_str(&text).expect("graphql failed");
+    if fight_events.data.txPagination.pageInfo.pageCount > 1 {
+        unimplemented!("YAGNI: all fights > 2147483647, second request needed");
+    }
+    let mut fights_history: HashMap<String, (u32, u32)> = HashMap::with_capacity(hmap_size);
+    for item in fight_events.data.txPagination.items {
+        for event in item.receipt.event_logs {
+            if event._eventname == "AfterFightWinLose" {
+                if event.params[0].vname == "token_id_winner" {
+                    add_stats(
+                        &mut fights_history,
+                        &event.params[0].value,
+                        &event.params[1].value,
+                    );
+                } else {
+                    add_stats(
+                        &mut fights_history,
+                        &event.params[1].value,
+                        &event.params[0].value,
+                    );
+                }
+            }
+        }
+    }
+    fights_history
+}
+fn add_stats(fights_history: &mut HashMap<String, (u32, u32)>, winner: &str, loser: &str) {
+    match fights_history.get_mut(winner) {
+        Some(x) => {
+            x.0 += 1;
+        }
+        None => {
+            fights_history.insert(winner.to_string(), (1, 0));
+        }
+    }
+    match fights_history.get_mut(loser) {
+        Some(x) => {
+            x.1 += 1;
+        }
+        None => {
+            fights_history.insert(loser.to_string(), (0, 1));
+        }
+    }
+}
 pub async fn get_block_num() -> u128 {
     loop {
-        let text = do_request(GETMIMIEPOCH).await;
+        let text = do_request(GETMIMIEPOCH, URL).await;
         let response: Resp<String> = match serde_json::from_str(&text) {
             Ok(result) => result,
             Err(_) => continue,

@@ -231,9 +231,8 @@ fn create_item<'a>(str_id: &'a str, app_s: &'a AppState) -> Result<Item<'a>, tid
             .parse()
             .map_err(|e| tide::Error::new(StatusCode::InternalServerError, e))?,
         rarity: *get_element(&app_s.all_id_rarity, str_id)?,
-        // TODO add real statistics
-        fight_win: 0,
-        fight_lose: 0,
+        fights_win: get_element(&app_s.all_id_fights, str_id)?.0,
+        fights_lose: get_element(&app_s.all_id_fights, str_id)?.1,
         actions: collect_actions(str_id, app_s),
         // TODO write true parents
         parents: [].to_vec(),
