@@ -265,11 +265,6 @@ fn collect_actions<'a>(str_id: &str, app_s: &'a AppState) -> Vec<(u8, &'a str)> 
 fn get_element<'a, T>(h_m: &'a HashMap<String, T>, str_id: &str) -> Result<&'a T, tide::Error> {
     h_m.get(str_id).ok_or_else(internal_error)
 }
-/*
-fn get_vec_or_zero(h_m: &HashMap<String, Vec<String>>, str_id: &str) -> Vec<String> {
-    *h_m.get(str_id).unwrap_or(&[].to_vec())
-}
-*/
 fn get_element_or_zero(h_m: &HashMap<String, (u32, u32)>, str_id: &str) -> (u32, u32) {
     *h_m.get(str_id).unwrap_or(&(0, 0))
 }
