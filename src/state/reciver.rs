@@ -102,7 +102,9 @@ pub async fn create() -> AppState {
             }
         }
     }
-
+    let text = do_request(WOUNDSTATE, URL).await;
+    let wounds_resp: Resp<WoundState> = serde_json::from_str(&text).expect("wounds state");
+    drop(text);
     for (id, owner) in &main_resp.result.token_owners {
         match all_id_owner.get(id) {
             None => {
@@ -164,6 +166,7 @@ pub async fn create() -> AppState {
         all_id_rarity,
         all_id_strength,
         all_id_fights: get_fights_history(all_len).await,
+        all_id_wounds: wounds_resp.result.wounded_list,
         main_state: main_resp.result,
         battle_id_list,
         battle_id_price: battle_resp.result.waiting_list,

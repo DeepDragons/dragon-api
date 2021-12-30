@@ -16,7 +16,8 @@ pub const MAINSTATE: &str = "{\"id\":\"1\",\"jsonrpc\":\"2.0\",\"method\":\"GetS
 
 // https://dev.zilliqa.com/docs/apis/api-contract-get-smartcontract-substate/
 // Returns the state (or a part specified) of a smart contract address
-pub const BATTLESTATE: &str = "{\"id\":\"1\",\"jsonrpc\":\"2.0\",\"method\":\"GetSmartContractSubState\",\"params\":[\"21B870dc77921B21F9A98a732786Bf812888193c\",\"waiting_list\",[]]}";
+pub const BATTLESTATE: &str = "{\"id\":\"1\",\"jsonrpc\":\"2.0\",\"method\":\"GetSmartContractSubState\",\"params\":[\"11AE5629fE2384abbe18906307773b4Eeb22ec22\",\"waiting_list\",[]]}";
+pub const WOUNDSTATE: &str = "{\"id\":\"1\",\"jsonrpc\":\"2.0\",\"method\":\"GetSmartContractSubState\",\"params\":[\"11AE5629fE2384abbe18906307773b4Eeb22ec22\",\"wounded_list\",[]]}";
 pub const BREEDSTATE: &str = "{\"id\":\"1\",\"jsonrpc\":\"2.0\",\"method\":\"GetSmartContractSubState\",\"params\":[\"ade7886ec4a36cb0a7de2f5d18cc7bdae12e3650\",\"waiting_list\",[]]}";
 pub const MARKETSTATE: &str = "{\"id\":\"1\",\"jsonrpc\":\"2.0\",\"method\":\"GetSmartContractSubState\",\"params\":[\"7b9b80aaF561Ecd4e89ea55D83d59Ab7aC01A575\",\"orderbook\",[]]}";
 pub const NAMESTATE: &str = "{\"id\":\"1\",\"jsonrpc\":\"2.0\",\"method\":\"GetSmartContractSubState\",\"params\":[\"0F5d8f74817E2BC5A09521149094A7860c691D42\",\"dragons_name\",[]]}";
@@ -100,6 +101,11 @@ pub struct BreedItem {
 }
 
 #[derive(Deserialize)]
+pub struct WoundState {
+    pub wounded_list: HashMap<String, Vec<String>>,
+}
+
+#[derive(Deserialize)]
 pub struct WaitState<T> {
     pub waiting_list: HashMap<String, T>,
 }
@@ -152,23 +158,24 @@ type HMVecStrings = HashMap<String, Vec<String>>;
 #[derive(Clone)]
 pub struct AppState {
     pub all_id_list: Vec<String>,
-    pub all_owned_id: HMVecStrings, //             (owner -> Vec<id>)
-    pub all_id_owner: HMStrings,    //                (id -> Owner)
-    pub all_id_rarity: HashMap<String, u8>, //     (id -> rarity)
-    pub all_id_strength: HashMap<String, u16>, // (id -> strength)
+    pub all_owned_id: HMVecStrings, //                 (owner -> Vec<id>)
+    pub all_id_owner: HMStrings,    //                 (id -> Owner)
+    pub all_id_rarity: HashMap<String, u8>, //         (id -> rarity)
+    pub all_id_strength: HashMap<String, u16>, //      (id -> strength)
     pub all_id_fights: HashMap<String, (u32, u32)>, // (id -> (win, lose))
+    pub all_id_wounds: HMVecStrings, //                (id -> Vec<wound>)
     pub main_state: MainState,
     pub battle_id_list: Vec<String>,
-    pub battle_id_price: HMStrings,    //             (id -> price)
-    pub battle_owned_id: HMVecStrings, //          (owner -> Vec<id>)
+    pub battle_id_price: HMStrings,    //              (id -> price)
+    pub battle_owned_id: HMVecStrings, //              (owner -> Vec<id>)
     pub breed_id_list: Vec<String>,
-    pub breed_id_price: HMStrings,    //              (id -> price)
-    pub breed_owned_id: HMVecStrings, //           (owner -> Vec<id>)
+    pub breed_id_price: HMStrings,    //               (id -> price)
+    pub breed_owned_id: HMVecStrings, //               (owner -> Vec<id>)
     pub market_id_list: Vec<String>,
-    pub market_id_price: HMStrings,    //             (id -> price)
-    pub market_id_order: HMStrings,    //             (id -> order_id)
-    pub market_owned_id: HMVecStrings, //          (owner -> Vec<id>)
-    pub id_name: HMStrings,            //            (id -> name)
+    pub market_id_price: HMStrings,    //              (id -> price)
+    pub market_id_order: HMStrings,    //              (id -> order_id)
+    pub market_owned_id: HMVecStrings, //              (owner -> Vec<id>)
+    pub id_name: HMStrings,            //              (id -> name)
 }
 
 /*
