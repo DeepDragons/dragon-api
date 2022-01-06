@@ -50,6 +50,7 @@ pub struct Item<'a> {
     pub actions: Vec<(u8, &'a str)>,
     pub parents: Vec<ShortItem>,
     pub children: Vec<ShortItem>,
+    pub wounds: Vec<String>,
 }
 
 #[derive(Serialize)]

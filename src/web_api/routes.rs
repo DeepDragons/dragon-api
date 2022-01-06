@@ -231,6 +231,7 @@ fn create_item<'a>(str_id: &'a str, app_s: &'a AppState) -> Result<Item<'a>, tid
             .parse()
             .map_err(|e| tide::Error::new(StatusCode::InternalServerError, e))?,
         rarity: *get_element(&app_s.all_id_rarity, str_id)?,
+        // TODO Rewrite fights like the names
         fights_win: get_element_or_zero(&app_s.all_id_fights, str_id).0,
         fights_lose: get_element_or_zero(&app_s.all_id_fights, str_id).1,
         actions: collect_actions(str_id, app_s),
@@ -238,6 +239,11 @@ fn create_item<'a>(str_id: &'a str, app_s: &'a AppState) -> Result<Item<'a>, tid
         parents: [].to_vec(),
         // TODO write true children
         children: [].to_vec(),
+        wounds: app_s
+            .all_id_wounds
+            .get(str_id)
+            .unwrap_or(&[].to_vec())
+            .clone(),
     })
 }
 fn collect_actions<'a>(str_id: &str, app_s: &'a AppState) -> Vec<(u8, &'a str)> {
