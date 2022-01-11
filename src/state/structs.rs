@@ -16,8 +16,8 @@ pub const MAINSTATE: &str = "{\"id\":\"1\",\"jsonrpc\":\"2.0\",\"method\":\"GetS
 
 // https://dev.zilliqa.com/docs/apis/api-contract-get-smartcontract-substate/
 // Returns the state (or a part specified) of a smart contract address
-pub const BATTLESTATE: &str = "{\"id\":\"1\",\"jsonrpc\":\"2.0\",\"method\":\"GetSmartContractSubState\",\"params\":[\"2c72d59ffda03570f94cfc8c3e562a211dfd2fe7\",\"waiting_list\",[]]}";
-pub const WOUNDSTATE: &str = "{\"id\":\"1\",\"jsonrpc\":\"2.0\",\"method\":\"GetSmartContractSubState\",\"params\":[\"2c72d59ffda03570f94cfc8c3e562a211dfd2fe7\",\"wounded_list\",[]]}";
+pub const BATTLESTATE: &str = "{\"id\":\"1\",\"jsonrpc\":\"2.0\",\"method\":\"GetSmartContractSubState\",\"params\":[\"f0a3fbcfa48e4c796daafbb9c6341d68ff326b64\",\"waiting_list\",[]]}";
+pub const WOUNDSTATE: &str = "{\"id\":\"1\",\"jsonrpc\":\"2.0\",\"method\":\"GetSmartContractSubState\",\"params\":[\"f0a3fbcfa48e4c796daafbb9c6341d68ff326b64\",\"wounded_list\",[]]}";
 pub const BREEDSTATE: &str = "{\"id\":\"1\",\"jsonrpc\":\"2.0\",\"method\":\"GetSmartContractSubState\",\"params\":[\"ade7886ec4a36cb0a7de2f5d18cc7bdae12e3650\",\"waiting_list\",[]]}";
 pub const MARKETSTATE: &str = "{\"id\":\"1\",\"jsonrpc\":\"2.0\",\"method\":\"GetSmartContractSubState\",\"params\":[\"7b9b80aaF561Ecd4e89ea55D83d59Ab7aC01A575\",\"orderbook\",[]]}";
 pub const NAMESTATE: &str = "{\"id\":\"1\",\"jsonrpc\":\"2.0\",\"method\":\"GetSmartContractSubState\",\"params\":[\"0F5d8f74817E2BC5A09521149094A7860c691D42\",\"dragons_name\",[]]}";
