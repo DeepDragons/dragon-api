@@ -6,7 +6,7 @@ description = "API server for dragonzil"
 repository = "https://github.com/DeepDragons/dragon-api"
 license = "MIT"
 keywords = ["web", "api", "tide", "zilliqa", "blockchain"]
-edition = "2018"
+edition = "2021"
 publish = false
 
 [dependencies]
