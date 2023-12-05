@@ -5,7 +5,6 @@ pub const APPOLO_URL: &str = "https://devex-apollo.zilliqa.com/";
 
 pub const GETFIGHT: &str = "{\"operationName\":\"Fights\",\"variables\":{\"contractAddr\":\"0x21b870dc77921b21f9a98a732786bf812888193c\",\"page\":1,\"perPage\":2147483647},\"query\":\"query Fights($contractAddr: String!, $page: Int, $perPage: Int) {txPagination(page: $page, perPage: $perPage, filter: {OR: [{toAddr: $contractAddr, receipt: {success: true, event_logs: {_eventname: \\\"AfterFightWinLose\\\"}}}]}, sort: TIMESTAMP_ASC) {pageInfo {currentPage perPage pageCount} items {receipt {event_logs { _eventname params {vname value}}}}}}\"}";
 
-
 // https://dev.zilliqa.com/api/blockchain-related-methods/api-blockchain-get-current-mini-epoch/
 // Returns the current TX block number of the network.
 pub const GETMIMIEPOCH: &str =
@@ -68,7 +67,7 @@ pub struct Data {
     pub data: TxPagination,
 }
 
-#[derive(Deserialize, Clone)]
+#[derive(Deserialize, Clone, Debug)]
 struct Dummy {
     // TODO vec strings
     argtypes: [u8; 0],
@@ -126,7 +125,7 @@ pub struct Resp<T> {
 type HMStrings = HashMap<String, String>;
 
 // https://github.com/DeepDragons/DragonZILContracts/blob/main/DragonZIL.scilla#L150
-#[derive(Deserialize, Clone)]
+#[derive(Deserialize, Clone, Debug)]
 pub struct MainState {
     _balance: String,
     cloud: String,
@@ -156,7 +155,7 @@ pub struct MainState {
 
 type HMVecStrings = HashMap<String, Vec<String>>;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct AppState {
     pub all_id_list: Vec<String>,
     pub all_owned_id: HMVecStrings, //                 (owner -> Vec<id>)

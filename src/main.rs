@@ -46,6 +46,8 @@ async fn main() -> tide::Result<()> {
     app.at("/api/v1/market").get(get_from_market);
     app.at("/api/v1/battle").get(get_from_battle);
     app.at("/api/v1/breed").get(get_from_breed);
+
     app.listen(api_url).await?;
+
     Ok(())
 }
